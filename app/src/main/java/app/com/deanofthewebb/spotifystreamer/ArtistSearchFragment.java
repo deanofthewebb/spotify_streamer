@@ -6,6 +6,7 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,15 +38,24 @@ public class ArtistSearchFragment extends Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        UpdateArtistResults();
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
+        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+
+        final TextView artistView = (TextView) rootView.findViewById(R.id.query_artist);
+        artistView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (keyCode == KeyEvent.ACTION_MULTIPLE || event.getAction() == KeyEvent.ACTION_DOWN) {
+                    String artistStr = artistView.getText().toString();
+                    Log.v(LOG_TAG, "KEYS CLICKED: " + artistStr);
+                    UpdateArtistResults(artistStr);
+                    return true;
+                }
+                return true;
+            }
+        });
 
         artistResultsAdapter =  new ArrayAdapter<String>(
                                     getActivity(), // The current context (this activity)
@@ -53,22 +63,17 @@ public class ArtistSearchFragment extends Fragment {
                                     R.id.artist_name_textview, // The ID of the textview to populate.
                                     new ArrayList<String>());
 
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-
         ListView listView = (ListView) rootView.findViewById(R.id.artist_results_listview);
         listView.setAdapter(artistResultsAdapter);
 
         return rootView;
     }
 
-    private void UpdateArtistResults() {
+    private void UpdateArtistResults(String artistQuery) {
         FetchArtistsTask artistTask = new FetchArtistsTask();
 
-        TextView artistView = (TextView) getActivity().findViewById(R.id.query_artist);
-        String artist = artistView.getText().toString();
-
-        Log.v(LOG_TAG, "Artist entered in text field: " + artist);
-        artistTask.execute("Coldplay");
+        Log.v(LOG_TAG, "Artist entered in text field: " + artistQuery);
+        artistTask.execute(artistQuery);
     }
 
     public class FetchArtistsTask extends AsyncTask<String, Void, String[]> {
