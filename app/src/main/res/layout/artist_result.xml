@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/artist_result_layout_height"
+    android:orientation="horizontal"
+    android:minHeight="?android:attr/listPreferredItemHeight">
+
+
+    <ImageView
+        android:id="@+id/artist_image_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:src="@mipmap/magic_album_art"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/artist_name_textview"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="4"
+        android:gravity="center_vertical"
+        android:text="Coldplay" />
+
+</LinearLayout>
