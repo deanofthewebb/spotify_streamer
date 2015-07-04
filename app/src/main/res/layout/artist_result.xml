@@ -10,10 +10,9 @@
         android:id="@+id/artist_image_imageview"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:src="@mipmap/magic_album_art"
         android:maxHeight="@dimen/artist_image_dimen"
         android:maxWidth="@dimen/artist_image_dimen"
-        android:padding="5dp"/>
+        android:padding="@dimen/artist_image_padding"/>
 
     <TextView
         android:id="@+id/artist_name_textview"
@@ -23,7 +22,6 @@
         android:layout_gravity="center_vertical"
         android:gravity="center_vertical"
         android:paddingLeft="5dp"
-        android:text="Coldplay"
         />
 
 </LinearLayout>

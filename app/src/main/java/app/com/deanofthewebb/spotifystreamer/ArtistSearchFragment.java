@@ -14,6 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,9 +29,6 @@ import kaaes.spotify.webapi.android.models.ArtistsPager;
 import retrofit.RetrofitError;
 
 
-/**
- * A placeholder fragment containing a simple view.
- */
 public class ArtistSearchFragment extends Fragment {
     private final String LOG_TAG = ArtistSearchFragment.class.getSimpleName();
     private ArtistAdapter artistResultsAdapter;
@@ -38,7 +36,6 @@ public class ArtistSearchFragment extends Fragment {
 
     public ArtistSearchFragment() {
     }
-
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -51,7 +48,17 @@ public class ArtistSearchFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+        UpdateArtistsOnKeysEntered(rootView);
 
+        artistResultsAdapter =  new ArtistAdapter(getActivity(),new ArrayList<Artist>());
+
+        ListView listView = (ListView) rootView.findViewById(R.id.artist_results_listview);
+        listView.setAdapter(artistResultsAdapter);
+
+        return rootView;
+    }
+
+    private void UpdateArtistsOnKeysEntered(View rootView) {
         final TextView artistView = (TextView) rootView.findViewById(R.id.query_artist);
         artistView.setOnKeyListener(new View.OnKeyListener() {
             @Override
@@ -65,25 +72,15 @@ public class ArtistSearchFragment extends Fragment {
                 return true;
             }
         });
-
-        artistResultsAdapter =  new ArtistAdapter(getActivity(),new ArrayList<Artist>());
-
-        ListView listView = (ListView) rootView.findViewById(R.id.artist_results_listview);
-
-        listView.setAdapter(artistResultsAdapter);
-
-        return rootView;
     }
 
     private void UpdateArtistResults(String artistQuery) {
         FetchArtistsTask artistTask = new FetchArtistsTask();
-
-        Log.v(LOG_TAG, "Artist entered in text field: " + artistQuery);
         artistTask.execute(artistQuery);
+
     }
 
     public class FetchArtistsTask extends AsyncTask<String, Void, ArtistsPager> {
-
         private final String LOG_TAG = FetchArtistsTask.class.getSimpleName();
 
 
@@ -93,18 +90,11 @@ public class ArtistSearchFragment extends Fragment {
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
 
-            //TODO: Handle case where no artists found
             ArtistsPager results = new ArtistsPager();
 
-            for (String param : params) {
-                results = spotify.searchArtists(param);
-
-                for ( Artist artist : results.artists.items) {
-                    Log.v(LOG_TAG, "ARTIST Results from Spotify API: " + artist.name);
-                }
+            if (params != null) {
+                results = spotify.searchArtists(params[0]);
             }
-
-
 
             return results;
         }
@@ -118,8 +108,18 @@ public class ArtistSearchFragment extends Fragment {
                 artistResultsAdapter.addAll(results.artists.items);
             }
             else {
-                Log.d(LOG_TAG, "No results found");
+                Log.d(LOG_TAG, "No results object returned");
             }
+
+            if (artistResultsAdapter.getCount() == 0) {
+                ShowNoArtistsFoundToast();
+            }
+        }
+
+        private void ShowNoArtistsFoundToast() {
+            CharSequence text = getString(R.string.no_artists_found);
+            int duration = Toast.LENGTH_LONG;
+            Toast.makeText(getActivity(), text, duration).show();
         }
     }
 }
