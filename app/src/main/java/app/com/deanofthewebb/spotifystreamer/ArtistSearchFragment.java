@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -18,13 +19,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Album;
+import kaaes.spotify.webapi.android.models.Artist;
+import kaaes.spotify.webapi.android.models.Artists;
+import kaaes.spotify.webapi.android.models.ArtistsPager;
+import retrofit.RetrofitError;
+
 
 /**
  * A placeholder fragment containing a simple view.
  */
 public class ArtistSearchFragment extends Fragment {
     private final String LOG_TAG = ArtistSearchFragment.class.getSimpleName();
-    private ArrayAdapter<String> artistResultsAdapter;
+    private ArtistAdapter artistResultsAdapter;
 
 
     public ArtistSearchFragment() {
@@ -57,13 +66,10 @@ public class ArtistSearchFragment extends Fragment {
             }
         });
 
-        artistResultsAdapter =  new ArrayAdapter<String>(
-                                    getActivity(), // The current context (this activity)
-                                    R.layout.artist_result, // The name of the layout ID.
-                                    R.id.artist_name_textview, // The ID of the textview to populate.
-                                    new ArrayList<String>());
+        artistResultsAdapter =  new ArtistAdapter(getActivity(),new ArrayList<Artist>());
 
         ListView listView = (ListView) rootView.findViewById(R.id.artist_results_listview);
+
         listView.setAdapter(artistResultsAdapter);
 
         return rootView;
@@ -76,35 +82,43 @@ public class ArtistSearchFragment extends Fragment {
         artistTask.execute(artistQuery);
     }
 
-    public class FetchArtistsTask extends AsyncTask<String, Void, String[]> {
+    public class FetchArtistsTask extends AsyncTask<String, Void, ArtistsPager> {
 
         private final String LOG_TAG = FetchArtistsTask.class.getSimpleName();
 
+
         @Override
-        protected String[] doInBackground(String... params) {
+        protected ArtistsPager doInBackground(String... params) {
 
-            //Grab string from edit text
-            //Query Spotify API with it
+            SpotifyApi api = new SpotifyApi();
+            SpotifyService spotify = api.getService();
 
-            String[] fakeData = {
-                    "Coldplay",
-                    "Coldplay & Lele",
-                    "Coldplay & Kanye",
-                    "Coldplay & Rihanna",
-                    "Coldplay & Me",
-                    "Various Artists - A Coldplay Tribute"
-            };
-            return fakeData;
+            //TODO: Handle case where no artists found
+            ArtistsPager results = new ArtistsPager();
+
+            for (String param : params) {
+                results = spotify.searchArtists(param);
+
+                for ( Artist artist : results.artists.items) {
+                    Log.v(LOG_TAG, "ARTIST Results from Spotify API: " + artist.name);
+                }
+            }
+
+
+
+            return results;
         }
 
         @Override
-        protected void onPostExecute(String[] results) {
+        protected void onPostExecute(ArtistsPager results) {
 
             if (results != null && artistResultsAdapter != null) {
                 artistResultsAdapter.clear();
 
-                ArrayList<String> artists = new ArrayList<String>(Arrays.asList(results));
-                artistResultsAdapter.addAll(artists);
+                artistResultsAdapter.addAll(results.artists.items);
+            }
+            else {
+                Log.d(LOG_TAG, "No results found");
             }
         }
     }

@@ -7,18 +7,23 @@
 
 
     <ImageView
-        android:id="@+id/artist_image_textview"
+        android:id="@+id/artist_image_imageview"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:src="@mipmap/magic_album_art"
-        android:layout_weight="1" />
+        android:maxHeight="@dimen/artist_image_dimen"
+        android:maxWidth="@dimen/artist_image_dimen"
+        android:padding="5dp"/>
 
     <TextView
         android:id="@+id/artist_name_textview"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="4"
+        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
         android:gravity="center_vertical"
-        android:text="Coldplay" />
+        android:paddingLeft="5dp"
+        android:text="Coldplay"
+        />
 
 </LinearLayout>
