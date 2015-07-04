@@ -1,5 +1,6 @@
 package app.com.deanofthewebb.spotifystreamer;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
@@ -51,7 +52,9 @@ public class ArtistDetailActivityFragment extends Fragment {
 
         if (artistDetailIntent != null && artistDetailIntent.hasExtra(Intent.EXTRA_TEXT)) {
             String artistId = artistDetailIntent.getStringExtra(Intent.EXTRA_TEXT);
+            String artistName = artistDetailIntent.getStringExtra(Intent.EXTRA_TITLE);
 
+            ((ArtistDetailActivity)getActivity()).setActionBarSubTitle(artistName);
             UpdateTopTracks(artistId);
         }
         else {
@@ -110,9 +113,15 @@ public class ArtistDetailActivityFragment extends Fragment {
 
             if (results != null && trackResultsAdapter != null) {
                 trackResultsAdapter.clear();
-                trackResultsAdapter.addAll(results.tracks.subList(0,9));
 
-            } else {
+                if (results.tracks.size() > 10) {
+                    trackResultsAdapter.addAll(results.tracks.subList(0, 10));
+                }
+                else {
+                    trackResultsAdapter.addAll(results.tracks);
+                }
+            }
+            else {
                 Log.d(LOG_TAG, "No results object returned");
             }
 

@@ -6,5 +6,5 @@
     <string name="query_artist_hint">Search for an Artist</string>
     <string name="no_artists_found">No artists found. Please try again.</string>
     <string name="no_tracks_found">No tracks found.</string>
-    <string name="title_activity_artist_detail">ArtistDetailActivity</string>
+    <string name="title_activity_artist_detail">Top 10 Tracks</string>
 </resources>

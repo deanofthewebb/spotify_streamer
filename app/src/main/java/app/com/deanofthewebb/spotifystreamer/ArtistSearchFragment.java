@@ -64,7 +64,8 @@ public class ArtistSearchFragment extends Fragment {
                 Artist artist = (Artist) artistResultsAdapter.getItem(position);
 
                 Intent artistDetailIntent = new Intent(getActivity(), ArtistDetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT, artist.id);
+                        .putExtra(Intent.EXTRA_TEXT, artist.id)
+                        .putExtra(Intent.EXTRA_TITLE, artist.name);
 
                 startActivity(artistDetailIntent);
             }
