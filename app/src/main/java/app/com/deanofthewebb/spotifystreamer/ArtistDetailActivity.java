@@ -8,10 +8,17 @@ import android.view.MenuItem;
 
 public class ArtistDetailActivity extends ActionBarActivity {
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_artist_detail);
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.detail_container, new ArtistDetailActivityFragment())
+                    .commit();
+        }
+
     }
 
 

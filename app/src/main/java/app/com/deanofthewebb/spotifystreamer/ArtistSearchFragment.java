@@ -1,5 +1,6 @@
 package app.com.deanofthewebb.spotifystreamer;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
@@ -10,6 +11,7 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -52,8 +54,23 @@ public class ArtistSearchFragment extends Fragment {
 
         artistResultsAdapter =  new ArtistAdapter(getActivity(),new ArrayList<Artist>());
 
-        ListView listView = (ListView) rootView.findViewById(R.id.artist_results_listview);
-        listView.setAdapter(artistResultsAdapter);
+        ListView artistResultsView = (ListView) rootView.findViewById(R.id.artist_results_listview);
+        artistResultsView.setAdapter(artistResultsAdapter);
+
+        //Top Tracks Activity
+        artistResultsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                Artist artist = (Artist) artistResultsAdapter.getItem(position);
+
+                Intent artistDetailIntent = new Intent(getActivity(), ArtistDetailActivity.class)
+                        .putExtra(Intent.EXTRA_TEXT, artist.id);
+
+                startActivity(artistDetailIntent);
+            }
+        });
+
+
 
         return rootView;
     }

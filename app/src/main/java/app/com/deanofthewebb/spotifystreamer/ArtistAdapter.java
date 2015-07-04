@@ -37,8 +37,8 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
     }
 
     private void SetTextView(View convertView, Artist artist) {
-        TextView versionNameView = (TextView) convertView.findViewById(R.id.artist_name_textview);
-        versionNameView.setText(artist.name);
+        TextView nameView = (TextView) convertView.findViewById(R.id.artist_name_textview);
+        nameView.setText(artist.name);
     }
 
     private void SetImageView(View convertView, Artist artist) {
