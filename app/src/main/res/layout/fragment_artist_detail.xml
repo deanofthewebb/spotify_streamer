@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/artist_result_layout_height"
+    android:orientation="horizontal"
+    android:minHeight="?android:attr/listPreferredItemHeight">
+
+
+    <ImageView
+        android:id="@+id/artist_image_imageview"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:maxHeight="@dimen/artist_image_dimen"
+        android:maxWidth="@dimen/artist_image_dimen"
+        android:padding="@dimen/artist_image_padding"
+        android:src="@mipmap/magic_album_art"/>
+
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_weight="1">
+
+
+        <TextView
+            android:id="@+id/track_name_textview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:layout_weight="1"
+            android:paddingLeft="5dp"
+            android:text="A Sky Full of Stars"
+            />
+
+        <TextView
+            android:id="@+id/track_album_textview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:layout_weight="1"
+            android:paddingLeft="5dp"
+            android:text="Ghost Stories"
+            />
+
+    </LinearLayout>
+
+</LinearLayout>
