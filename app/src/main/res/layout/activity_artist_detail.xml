@@ -1,4 +1,4 @@
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:name="app.com.deanofthewebb.spotifystreamer.ArtistDetailActivityFragment"
     android:id="@+id/detail_container"

@@ -22,15 +22,6 @@ public class ArtistDetailActivity extends ActionBarActivity {
         }
     }
 
-    public void onRestoreInstanceState(Bundle savedInstanceState) {
-        // Always call the superclass so it can restore the view hierarchy
-        super.onRestoreInstanceState(savedInstanceState);
-
-        ArrayList<ParceableTrack> tracksFound = savedInstanceState.getParcelableArrayList("parcel_tracks");
-        Log.v("ArtistDetailActivity", "TRACK FOUND AFTER SAVE - onRestoreInstanceState: " + tracksFound.size());
-
-
-    }
 
     public void setActionBarSubTitle (String subTitle) {
             getSupportActionBar().setSubtitle(subTitle);

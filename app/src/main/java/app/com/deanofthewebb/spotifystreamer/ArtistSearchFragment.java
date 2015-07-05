@@ -46,7 +46,6 @@ public class ArtistSearchFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         UpdateArtistsOnKeysEntered(rootView);
 
@@ -122,7 +121,6 @@ public class ArtistSearchFragment extends Fragment {
 
         @Override
         protected ArtistsPager doInBackground(String... params) {
-
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
 
@@ -137,7 +135,6 @@ public class ArtistSearchFragment extends Fragment {
 
         @Override
         protected void onPostExecute(ArtistsPager results) {
-
             if (results != null && artistResultsAdapter != null) {
                 CreateParceableArtists(results);
 
@@ -154,6 +151,7 @@ public class ArtistSearchFragment extends Fragment {
         }
 
         private void CreateParceableArtists(ArtistsPager results) {
+            artistsFound.clear();
 
             for(Artist artist : results.artists.items) {
                 if (!artist.images.isEmpty()) {

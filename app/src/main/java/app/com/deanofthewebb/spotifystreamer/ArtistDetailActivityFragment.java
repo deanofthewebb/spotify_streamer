@@ -43,7 +43,6 @@ public class ArtistDetailActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
         View rootView = inflater.inflate(R.layout.fragment_artist_detail, container, false);
         Intent artistDetailIntent = getActivity().getIntent();
 
@@ -52,12 +51,9 @@ public class ArtistDetailActivityFragment extends Fragment {
             tracksFound = savedInstanceState.getParcelableArrayList(PARCEL_TRACKS);
 
             List<Track> trackList = new ArrayList<Track>();
-
             for (ParceableTrack parceableTrack : tracksFound) {
                 trackList.add(parceableTrack);
             }
-
-            Log.v(LOG_TAG, "TRACK FOUND AFTER SAVE - ON CREATE: " + tracksFound.size());
 
             trackResultsAdapter = new TrackAdapter(getActivity(), trackList);
         }
@@ -91,14 +87,10 @@ public class ArtistDetailActivityFragment extends Fragment {
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-
         // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
 
         savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, tracksFound);
-
-        Log.v(LOG_TAG, "TRACK LIST BEFORE SAVED: " + tracksFound.size());
-
     }
 
     private void UpdateTopTracks(String artistID) {
@@ -131,7 +123,6 @@ public class ArtistDetailActivityFragment extends Fragment {
 
         @Override
         protected void onPostExecute(Tracks results) {
-
             if (results != null && trackResultsAdapter != null) {
                 trackResultsAdapter.clear();
 
@@ -152,6 +143,7 @@ public class ArtistDetailActivityFragment extends Fragment {
         }
 
         private void CreateParceableTracks(Tracks results) {
+            tracksFound.clear();
 
             for(Track track : results.tracks) {
                 if (!track.album.images.isEmpty()) {

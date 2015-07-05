@@ -16,8 +16,7 @@ public class ParceableImage extends Image implements Parcelable {
         super();
     }
 
-    public ParceableImage(Integer width, Integer height, String url)
-    {
+    public ParceableImage(Integer width, Integer height, String url) {
         this.width = width;
         this.height = height;
         this.url = url;

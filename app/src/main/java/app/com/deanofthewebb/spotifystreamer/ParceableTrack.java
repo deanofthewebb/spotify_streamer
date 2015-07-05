@@ -60,7 +60,6 @@ public class ParceableTrack extends Track implements Parcelable {
     };
 
     private ParceableTrack(Parcel in) {
-
         String[] trackValues = in.createStringArray();
         name = trackValues[0];
         album.name = trackValues[1];

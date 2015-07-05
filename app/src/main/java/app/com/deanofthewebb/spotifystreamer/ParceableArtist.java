@@ -35,7 +35,6 @@ public class ParceableArtist extends Artist implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-
         if (!this.images.isEmpty()) {
             Image image = this.images.get(0);
 
