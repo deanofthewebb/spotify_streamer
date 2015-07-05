@@ -1,9 +1,9 @@
 package app.com.deanofthewebb.spotifystreamer;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,31 +12,29 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
-import kaaes.spotify.webapi.android.models.Album;
 import kaaes.spotify.webapi.android.models.Artist;
-import kaaes.spotify.webapi.android.models.Artists;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
-import retrofit.RetrofitError;
+import kaaes.spotify.webapi.android.models.Image;
 
 
 public class ArtistSearchFragment extends Fragment {
     private final String LOG_TAG = ArtistSearchFragment.class.getSimpleName();
     private ArtistAdapter artistResultsAdapter;
+    private ArrayList<ParceableArtist> artistsFound;
 
+    private final String PARCEL_ARTISTS = "parcel_artists";
 
     public ArtistSearchFragment() {
+        artistsFound = new ArrayList<ParceableArtist>();
     }
 
     @Override
@@ -52,12 +50,25 @@ public class ArtistSearchFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         UpdateArtistsOnKeysEntered(rootView);
 
-        artistResultsAdapter =  new ArtistAdapter(getActivity(),new ArrayList<Artist>());
+        if (savedInstanceState != null) {
+
+            artistsFound = savedInstanceState.getParcelableArrayList(PARCEL_ARTISTS);
+
+            List<Artist> artistList = new ArrayList<Artist>();
+
+            for (ParceableArtist parceableArtist : artistsFound) {
+                artistList.add(parceableArtist);
+            }
+
+            artistResultsAdapter =  new ArtistAdapter(getActivity(), artistList);
+        }
+        else {
+            artistResultsAdapter =  new ArtistAdapter(getActivity(),new ArrayList<Artist>());
+        }
 
         ListView artistResultsView = (ListView) rootView.findViewById(R.id.artist_results_listview);
         artistResultsView.setAdapter(artistResultsAdapter);
 
-        //Top Tracks Activity
         artistResultsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
@@ -71,9 +82,16 @@ public class ArtistSearchFragment extends Fragment {
             }
         });
 
-
-
         return rootView;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+
+        savedInstanceState.putParcelableArrayList(PARCEL_ARTISTS, artistsFound);
+
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
     }
 
     private void UpdateArtistsOnKeysEntered(View rootView) {
@@ -121,9 +139,10 @@ public class ArtistSearchFragment extends Fragment {
         protected void onPostExecute(ArtistsPager results) {
 
             if (results != null && artistResultsAdapter != null) {
-                artistResultsAdapter.clear();
+                CreateParceableArtists(results);
 
-                artistResultsAdapter.addAll(results.artists.items);
+                artistResultsAdapter.clear();
+                artistResultsAdapter.addAll(artistsFound);
             }
             else {
                 Log.d(LOG_TAG, "No results object returned");
@@ -131,6 +150,19 @@ public class ArtistSearchFragment extends Fragment {
 
             if (artistResultsAdapter.getCount() == 0) {
                 ShowNoArtistsFoundToast();
+            }
+        }
+
+        private void CreateParceableArtists(ArtistsPager results) {
+
+            for(Artist artist : results.artists.items) {
+                if (!artist.images.isEmpty()) {
+                    Image artistImage = artist.images.get(0);
+                    artistsFound.add(new ParceableArtist(artist.name, artist.id, artistImage));
+                }
+                else {
+                    artistsFound.add(new ParceableArtist(artist.name, artist.id, null));
+                }
             }
         }
 

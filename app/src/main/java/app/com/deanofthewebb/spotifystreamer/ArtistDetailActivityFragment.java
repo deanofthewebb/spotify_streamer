@@ -1,21 +1,16 @@
 package app.com.deanofthewebb.spotifystreamer;
 
-import android.app.ActionBar;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.support.v4.view.MenuItemCompat;
-import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -25,18 +20,24 @@ import java.util.Map;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Album;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
+import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
+import kaaes.spotify.webapi.android.models.TracksPager;
 
 
 public class ArtistDetailActivityFragment extends Fragment {
     private final String LOG_TAG = ArtistDetailActivityFragment.class.getSimpleName();
+    private final String PARCEL_TRACKS = "parcel_tracks";
     private TrackAdapter trackResultsAdapter;
+    private ArrayList<ParceableTrack> tracksFound;
 
     public ArtistDetailActivityFragment() {
         setHasOptionsMenu(true);
+        tracksFound = new ArrayList<ParceableTrack>();
     }
 
     @Override
@@ -45,7 +46,25 @@ public class ArtistDetailActivityFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_artist_detail, container, false);
         Intent artistDetailIntent = getActivity().getIntent();
-        trackResultsAdapter = new TrackAdapter(getActivity(),new ArrayList<Track>());
+
+        if (savedInstanceState != null) {
+
+            tracksFound = savedInstanceState.getParcelableArrayList(PARCEL_TRACKS);
+
+            List<Track> trackList = new ArrayList<Track>();
+
+            for (ParceableTrack parceableTrack : tracksFound) {
+                trackList.add(parceableTrack);
+            }
+
+            Log.v(LOG_TAG, "TRACK FOUND AFTER SAVE - ON CREATE: " + tracksFound.size());
+
+            trackResultsAdapter = new TrackAdapter(getActivity(), trackList);
+        }
+        else {
+            trackResultsAdapter = new TrackAdapter(getActivity(),new ArrayList<Track>());
+        }
+
 
         ListView trackResultsView = (ListView) rootView.findViewById(R.id.track_results_listview);
         trackResultsView.setAdapter(trackResultsAdapter);
@@ -61,14 +80,25 @@ public class ArtistDetailActivityFragment extends Fragment {
             Log.d(LOG_TAG, "Intent passed is null.");
         }
 
-
         return rootView;
     }
 
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        inflater.inflate(R.menu.menu_artist_detail, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+
+        savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, tracksFound);
+
+        Log.v(LOG_TAG, "TRACK LIST BEFORE SAVED: " + tracksFound.size());
+
     }
 
     private void UpdateTopTracks(String artistID) {
@@ -81,28 +111,19 @@ public class ArtistDetailActivityFragment extends Fragment {
     public class FetchTopTracksTask extends AsyncTask<String, Void, Tracks> {
         private final String LOG_TAG = FetchTopTracksTask.class.getSimpleName();
 
-
         @Override
         protected Tracks doInBackground(String... params) {
 
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
 
-
             Tracks results = new Tracks();
 
             if (params != null) {
-                Log.v(LOG_TAG, "Artist ID: " + params[0]);
-                Map<String, Object> options = new HashMap<String, Object>() {
-                };
+                Map<String, Object> options = new HashMap<String, Object>() {};
                 options.put(SpotifyService.COUNTRY, "US");
 
                 results = spotify.getArtistTopTrack(params[0], options);
-
-                for(Track track : results.tracks) {
-                    Log.v(LOG_TAG, "Track found: " + track.name);
-                    Log.v(LOG_TAG, "Album for track found: " + track.album.name);
-                }
             }
 
             return results;
@@ -115,11 +136,11 @@ public class ArtistDetailActivityFragment extends Fragment {
                 trackResultsAdapter.clear();
 
                 if (results.tracks.size() > 10) {
-                    trackResultsAdapter.addAll(results.tracks.subList(0, 10));
+                    results.tracks = results.tracks.subList(0, 10);
                 }
-                else {
-                    trackResultsAdapter.addAll(results.tracks);
-                }
+
+                trackResultsAdapter.addAll(results.tracks);
+                CreateParceableTracks(results);
             }
             else {
                 Log.d(LOG_TAG, "No results object returned");
@@ -127,6 +148,19 @@ public class ArtistDetailActivityFragment extends Fragment {
 
             if (trackResultsAdapter != null && trackResultsAdapter.getCount() == 0) {
                 ShowNoTracksFoundToast();
+            }
+        }
+
+        private void CreateParceableTracks(Tracks results) {
+
+            for(Track track : results.tracks) {
+                if (!track.album.images.isEmpty()) {
+                    Image artistImage = track.album.images.get(0);
+                    tracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage));
+                }
+                else{
+                    tracksFound.add(new ParceableTrack(track.name, track.album.name, null));
+                }
             }
         }
 
