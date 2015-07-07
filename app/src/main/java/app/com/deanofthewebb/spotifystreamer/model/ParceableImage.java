@@ -1,4 +1,4 @@
-package app.com.deanofthewebb.spotifystreamer;
+package app.com.deanofthewebb.spotifystreamer.model;
 
 
 import android.os.Parcel;

@@ -1,4 +1,4 @@
-package app.com.deanofthewebb.spotifystreamer;
+package app.com.deanofthewebb.spotifystreamer.fragment;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -20,15 +20,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
+import app.com.deanofthewebb.spotifystreamer.R;
+import app.com.deanofthewebb.spotifystreamer.activity.ArtistDetailActivity;
+import app.com.deanofthewebb.spotifystreamer.adapter.TrackAdapter;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
-import kaaes.spotify.webapi.android.models.Album;
-import kaaes.spotify.webapi.android.models.Artist;
-import kaaes.spotify.webapi.android.models.ArtistsPager;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
-import kaaes.spotify.webapi.android.models.TracksPager;
 import retrofit.RetrofitError;
 
 

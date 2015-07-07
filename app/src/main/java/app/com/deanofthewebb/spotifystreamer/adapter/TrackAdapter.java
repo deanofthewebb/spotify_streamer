@@ -1,4 +1,4 @@
-package app.com.deanofthewebb.spotifystreamer;
+package app.com.deanofthewebb.spotifystreamer.adapter;
 
 import android.app.Activity;
 import android.view.LayoutInflater;
@@ -9,6 +9,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import com.squareup.picasso.Picasso;
 import java.util.List;
+
+import app.com.deanofthewebb.spotifystreamer.R;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 

@@ -1,14 +1,14 @@
-package app.com.deanofthewebb.spotifystreamer;
+package app.com.deanofthewebb.spotifystreamer.activity;
 
 import android.content.Intent;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import java.util.ArrayList;
+import app.com.deanofthewebb.spotifystreamer.fragment.ArtistDetailActivityFragment;
+import app.com.deanofthewebb.spotifystreamer.R;
 
 
 public class ArtistDetailActivity extends ActionBarActivity {
