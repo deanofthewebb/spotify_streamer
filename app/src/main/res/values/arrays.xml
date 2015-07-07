@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="pref_country_options">
+        <item>United States</item>
+        <item>Canada</item>
+        <item>Mexico</item>
+        <item>UK</item>
+        <item>Germany</item>
+        <item>Italy</item>
+        <item>France</item>
+        <item>Spain</item>
+        <item>Nigeria</item>
+        <item>Ethiopia</item>
+    </string-array>
+    <string-array name="pref_country_values">
+        <item>@string/pref_country_code_usa</item>
+        <item>@string/pref_country_code_canada</item>
+        <item>@string/pref_country_code_mexico</item>
+        <item>@string/pref_country_code_uk</item>
+        <item>@string/pref_country_code_germany</item>
+        <item>@string/pref_country_code_italy</item>
+        <item>@string/pref_country_code_france</item>
+        <item>@string/pref_country_code_spain</item>
+        <item>@string/pref_country_code_nigeria</item>
+        <item>@string/pref_country_code_ethiopia</item>
+    </string-array>
+</resources>

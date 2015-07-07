@@ -1,7 +1,9 @@
 package app.com.deanofthewebb.spotifystreamer;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -112,8 +114,14 @@ public class ArtistDetailActivityFragment extends Fragment {
             Tracks results = new Tracks();
 
             if (params != null) {
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+                String countryCode = preferences.getString(getString(R.string.pref_country_key),
+                        getString(R.string.pref_country_code_usa));
+
+
                 Map<String, Object> options = new HashMap<String, Object>() {};
-                options.put(SpotifyService.COUNTRY, "US");
+                options.put(SpotifyService.COUNTRY, countryCode);
 
                 results = spotify.getArtistTopTrack(params[0], options);
             }
