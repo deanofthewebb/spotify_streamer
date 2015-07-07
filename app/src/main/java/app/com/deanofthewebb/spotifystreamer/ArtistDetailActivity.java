@@ -1,6 +1,7 @@
 package app.com.deanofthewebb.spotifystreamer;
 
 import android.content.Intent;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,7 +26,11 @@ public class ArtistDetailActivity extends ActionBarActivity {
 
 
     public void setActionBarSubTitle (String subTitle) {
-            getSupportActionBar().setSubtitle(subTitle);
+        ActionBar supportActionBar =  getSupportActionBar();
+
+        if (supportActionBar !=null ) {
+            supportActionBar.setSubtitle(subTitle);
+        }
     }
 
 

@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:hint="@string/query_artist_hint"
         android:inputType="textNoSuggestions" />
-
+    
     <ListView
         android:id="@+id/artist_results_listview"
         android:layout_width="match_parent"

@@ -1,6 +1,9 @@
 package app.com.deanofthewebb.spotifystreamer;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -24,6 +27,7 @@ import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
 import kaaes.spotify.webapi.android.models.Image;
+import retrofit.RetrofitError;
 
 
 public class ArtistSearchFragment extends Fragment {
@@ -110,9 +114,27 @@ public class ArtistSearchFragment extends Fragment {
     }
 
     private void UpdateArtistResults(String artistQuery) {
-        FetchArtistsTask artistTask = new FetchArtistsTask();
-        artistTask.execute(artistQuery);
+        if (isNetworkAvailable()) {
+            FetchArtistsTask artistTask = new FetchArtistsTask();
+            artistTask.execute(artistQuery);
+        }
+        else {
+            ShowNoNetworkFoundToast();
+        }
 
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    private void ShowNoNetworkFoundToast() {
+        CharSequence text = getString(R.string.no_network_found);
+        int duration = Toast.LENGTH_LONG;
+        Toast.makeText(getActivity(), text, duration).show();
     }
 
     public class FetchArtistsTask extends AsyncTask<String, Void, ArtistsPager> {
@@ -121,16 +143,22 @@ public class ArtistSearchFragment extends Fragment {
 
         @Override
         protected ArtistsPager doInBackground(String... params) {
-            SpotifyApi api = new SpotifyApi();
-            SpotifyService spotify = api.getService();
+            try {
+                SpotifyApi api = new SpotifyApi();
+                SpotifyService spotify = api.getService();
 
-            ArtistsPager results = new ArtistsPager();
+                ArtistsPager results = new ArtistsPager();
 
-            if (params != null) {
-                results = spotify.searchArtists(params[0]);
+                if (params != null) {
+                    results = spotify.searchArtists(params[0]);
+                }
+
+                return results;
             }
-
-            return results;
+            catch (RetrofitError re) {
+                Log.d(LOG_TAG, "Retrofit error has occured: " + re.getMessage());
+                return null;
+            }
         }
 
         @Override
