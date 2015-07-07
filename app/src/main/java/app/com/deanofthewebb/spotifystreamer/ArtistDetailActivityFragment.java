@@ -29,6 +29,7 @@ import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
 import kaaes.spotify.webapi.android.models.TracksPager;
+import retrofit.RetrofitError;
 
 
 public class ArtistDetailActivityFragment extends Fragment {
@@ -107,26 +108,28 @@ public class ArtistDetailActivityFragment extends Fragment {
 
         @Override
         protected Tracks doInBackground(String... params) {
+            try {
+                SpotifyApi api = new SpotifyApi();
+                SpotifyService spotify = api.getService();
 
-            SpotifyApi api = new SpotifyApi();
-            SpotifyService spotify = api.getService();
+                Tracks results = new Tracks();
 
-            Tracks results = new Tracks();
+                if (params != null) {
+                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                    String countryCode = preferences.getString(getString(R.string.pref_country_key), getString(R.string.pref_country_code_usa));
+                    Map<String, Object> options = new HashMap<String, Object>() {};
+                    options.put(SpotifyService.COUNTRY, countryCode);
 
-            if (params != null) {
-                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                    results = spotify.getArtistTopTrack(params[0], options);
+                }
 
-                String countryCode = preferences.getString(getString(R.string.pref_country_key),
-                        getString(R.string.pref_country_code_usa));
-
-
-                Map<String, Object> options = new HashMap<String, Object>() {};
-                options.put(SpotifyService.COUNTRY, countryCode);
-
-                results = spotify.getArtistTopTrack(params[0], options);
+                return results;
             }
-
-            return results;
+            catch (RetrofitError re) {
+                Log.d(LOG_TAG, "Retrofit error has occured: " + re.getMessage());
+                Toast.makeText(getActivity(), getResources().getString(R.string.no_network_found), Toast.LENGTH_SHORT).show();
+                return null;
+            }
         }
 
         @Override
