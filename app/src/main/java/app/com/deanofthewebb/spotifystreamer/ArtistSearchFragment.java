@@ -5,18 +5,15 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -98,18 +95,24 @@ public class ArtistSearchFragment extends Fragment {
     }
 
     private void UpdateArtistsOnKeysEntered(View rootView) {
-        final TextView artistView = (TextView) rootView.findViewById(R.id.query_artist);
-        artistView.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (keyCode == KeyEvent.ACTION_MULTIPLE || event.getAction() == KeyEvent.ACTION_DOWN) {
-                    String artistStr = artistView.getText().toString();
-                    Log.v(LOG_TAG, "KEYS CLICKED: " + artistStr);
-                    UpdateArtistResults(artistStr);
-                    return true;
-                }
-                return true;
-            }
+        final SearchView searchText = (SearchView) rootView.findViewById(R.id.search_text);
+        searchText.setIconifiedByDefault(false);
+        searchText.setQueryHint(getResources().getString(R.string.query_artist_hint));
+        searchText.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        @Override
+        public boolean onQueryTextSubmit(String query) {
+            final String searchKeyword = searchText.getQuery().toString();
+            UpdateArtistResults(searchKeyword);
+            return false;
+        }
+
+        @Override
+        public boolean onQueryTextChange(String newText) {
+            final String searchKeyword = searchText.getQuery().toString();
+            UpdateArtistResults(searchKeyword);
+            return false;
+        }
+
         });
     }
 
