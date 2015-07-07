@@ -21,23 +21,38 @@ public class TrackAdapter extends ArrayAdapter<Track> {
         super(context, 0, tracks);
     }
 
+    private static class ViewHolder {
+        TextView track_name;
+        TextView track_album_name;
+        ImageView icon;
+        int position;
+    }
+    private ViewHolder holder;
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent){
         Track track = getItem(position);
 
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.track_result, parent, false);
+            holder = new ViewHolder();
+            holder.track_name = (TextView) convertView.findViewById(R.id.track_name_textview);
+            holder.track_album_name = (TextView) convertView.findViewById(R.id.track_album_textview);
+            holder.icon = (ImageView) convertView.findViewById(R.id.track_album_imageview);
+            convertView.setTag(holder);
+        }
+        else {
+            holder = (ViewHolder) convertView.getTag();
         }
 
-        SetTrackName(convertView, track.name);
-        SetTrackAlbumName(convertView, track.album.name);
-        SetAlbumImage(convertView, track);
+        holder.track_name.setText(track.name);
+        holder.track_album_name.setText(track.album.name);
+        SetAlbumImage(holder.icon, track);
 
         return  convertView;
     }
 
-    private void SetAlbumImage(View convertView, Track track) {
-        ImageView iconView = (ImageView) convertView.findViewById(R.id.track_album_imageview);
+    private void SetAlbumImage(ImageView icon, Track track) {
 
         if (!track.album.images.isEmpty()) {
             Image trackAlbumImage = (track.album.images.get(0));
@@ -47,21 +62,10 @@ public class TrackAdapter extends ArrayAdapter<Track> {
                     .load(url)
                     .resizeDimen(R.dimen.artist_image_dimen, R.dimen.artist_image_dimen)
                     .centerCrop()
-                    .into(iconView);
+                    .into(icon);
         }
         else{
-            iconView.setImageResource(R.mipmap.spotify_streamer_launcher);
+            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
         }
     }
-
-    private void SetTrackName(View convertView, String track_name) {
-        TextView trackNameView = (TextView) convertView.findViewById(R.id.track_name_textview);
-        trackNameView.setText(track_name);
-    }
-
-    private void SetTrackAlbumName(View convertView, String trackAlbumName) {
-        TextView trackAlbumView = (TextView) convertView.findViewById(R.id.track_album_textview);
-        trackAlbumView.setText(trackAlbumName);
-    }
-
 }

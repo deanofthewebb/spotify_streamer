@@ -23,27 +23,35 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
         super(context, 0, artists);
     }
 
+    private static class ViewHolder {
+        TextView artist_name;
+        ImageView icon;
+        int position;
+    }
+    private ViewHolder holder;
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent){
         Artist artist = getItem(position);
 
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.artist_result, parent, false);
+            holder = new ViewHolder();
+            holder.artist_name = (TextView) convertView.findViewById(R.id.artist_name_textview);
+            holder.icon = (ImageView) convertView.findViewById(R.id.artist_image_imageview);
+            convertView.setTag(holder);
+        }
+        else {
+            holder = (ViewHolder) convertView.getTag();
         }
 
-        SetTextView(convertView, artist);
-        SetImageView(convertView, artist);
+        holder.artist_name.setText(artist.name);
+        SetImageView(holder.icon, artist);
 
         return  convertView;
     }
 
-    private void SetTextView(View convertView, Artist artist) {
-        TextView nameView = (TextView) convertView.findViewById(R.id.artist_name_textview);
-        nameView.setText(artist.name);
-    }
-
-    private void SetImageView(View convertView, Artist artist) {
-        ImageView iconView = (ImageView) convertView.findViewById(R.id.artist_image_imageview);
+    private void SetImageView(ImageView icon, Artist artist) {
 
         if (!artist.images.isEmpty()) {
             Image artistImage = (artist.images.get(0));
@@ -53,10 +61,10 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
                     .load(url)
                     .resizeDimen(R.dimen.artist_image_dimen, R.dimen.artist_image_dimen)
                     .centerCrop()
-                    .into(iconView);
+                    .into(icon);
         }
         else{
-            iconView.setImageResource(R.mipmap.spotify_streamer_launcher);
+            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
         }
     }
 }

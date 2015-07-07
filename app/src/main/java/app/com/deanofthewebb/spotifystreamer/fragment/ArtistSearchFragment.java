@@ -164,7 +164,10 @@ public class ArtistSearchFragment extends Fragment {
             }
             catch (RetrofitError re) {
                 Log.d(LOG_TAG, "Retrofit error has occured: " + re.getMessage());
-                Toast.makeText(getActivity(), getResources().getString(R.string.no_network_found), Toast.LENGTH_SHORT).show();
+                return null;
+            }
+            catch (Exception ex) {
+                Log.d(LOG_TAG, "An error has occured: " + ex.getMessage());
                 return null;
             }
         }
