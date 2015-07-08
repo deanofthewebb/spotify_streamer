@@ -150,10 +150,10 @@ public class ArtistSearchFragment extends Fragment {
 
         @Override
         protected ArtistsPager doInBackground(String... params) {
-            try {
                 SpotifyApi api = new SpotifyApi();
                 SpotifyService spotify = api.getService();
 
+            try {
                 ArtistsPager results = new ArtistsPager();
 
                 if (params != null) {

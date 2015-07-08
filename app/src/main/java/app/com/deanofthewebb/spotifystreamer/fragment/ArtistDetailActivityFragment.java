@@ -108,11 +108,12 @@ public class ArtistDetailActivityFragment extends Fragment {
 
         @Override
         protected Tracks doInBackground(String... params) {
-            try {
                 SpotifyApi api = new SpotifyApi();
                 SpotifyService spotify = api.getService();
 
-                Tracks results = new Tracks();
+            try {
+                    Tracks results = new Tracks();
+
 
                 if (params != null) {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());

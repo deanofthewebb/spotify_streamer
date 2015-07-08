@@ -61,7 +61,7 @@ public class TrackAdapter extends ArrayAdapter<Track> {
     private void SetAlbumImage(ImageView icon, Track track) {
 
         if (!track.album.images.isEmpty()) {
-            Image trackAlbumImage = (track.album.images.get(0));
+            Image trackAlbumImage = (track.album.images.get(track.album.images.size() - 1));
             SafelyLoadImageFromPicasso(icon, trackAlbumImage);
         }
         else{

@@ -1,6 +1,8 @@
 package app.com.deanofthewebb.spotifystreamer.adapter;
 
 import android.app.Activity;
+import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +12,9 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.List;
 
 import app.com.deanofthewebb.spotifystreamer.R;
@@ -54,16 +59,35 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
     private void SetImageView(ImageView icon, Artist artist) {
 
         if (!artist.images.isEmpty()) {
-            Image artistImage = (artist.images.get(0));
-            String url = artistImage.url;
+            Image artistImage = (artist.images.get(artist.images.size() - 1));
+
+            SafelyLoadImageFromPicasso(icon, artistImage);
+        }
+        else{
+            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
+        }
+    }
+
+    private void SafelyLoadImageFromPicasso(ImageView icon, Image image) {
+        try {
+            URL url = new URL(image.url);
+            Uri uri = Uri.parse( url.toURI().toString() );
 
             Picasso.with(getContext())
-                    .load(url)
+                    .load(uri)
                     .resizeDimen(R.dimen.artist_image_dimen, R.dimen.artist_image_dimen)
                     .centerCrop()
                     .into(icon);
         }
-        else{
+        catch (MalformedURLException e1) {
+            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
+        }
+        catch (URISyntaxException e) {
+            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
+        }
+        catch (Exception ex) {
+            Log.d(LOG_TAG, "An error has occured" + ex.getMessage());
+            Log.d(LOG_TAG, ex.getStackTrace().toString());
             icon.setImageResource(R.mipmap.spotify_streamer_launcher);
         }
     }
