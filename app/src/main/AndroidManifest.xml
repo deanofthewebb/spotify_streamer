@@ -35,8 +35,7 @@
             android:parentActivityName=".activity.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="app.com.example.deanofthewebb.sunshine.MainActivity" />
+                android:value=".activity.MainActivity" />
         </activity>
     </application>
-
 </manifest>

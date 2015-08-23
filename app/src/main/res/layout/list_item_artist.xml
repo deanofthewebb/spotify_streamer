@@ -7,7 +7,7 @@
 
 
     <ImageView
-        android:id="@+id/artist_image_imageview"
+        android:id="@+id/list_item_artist_art"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:maxHeight="@dimen/artist_image_dimen"
@@ -15,7 +15,7 @@
         android:padding="@dimen/artist_image_padding"/>
 
     <TextView
-        android:id="@+id/artist_name_textview"
+        android:id="@+id/list_item_artist_name"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"

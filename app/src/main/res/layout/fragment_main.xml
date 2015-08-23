@@ -3,10 +3,8 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingRight="@dimen/activity_64"
-    android:paddingLeft="@dimen/activity_64"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin" tools:context=".ArtistSearchFragment">
+    android:padding="@dimen/activity_64"
+    tools:context=".ArtistSearchFragment">
 
     <android.support.v7.widget.SearchView
         android:layout_width="match_parent"
