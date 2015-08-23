@@ -12,6 +12,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import app.com.deanofthewebb.spotifystreamer.activity.PlaybackActivity;
 import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
@@ -38,6 +40,12 @@ public class ArtistTracksFragment extends Fragment {
     private TrackAdapter trackResultsAdapter;
     private ArrayList<ParceableTrack> tracksFound;
     private String artistId;
+    private String artistName;
+
+
+    public static final String TRACK_ID_EXTRA = "t_n_e";
+    public static final String ARTIST_ID_EXTRA = "ar_n_e";
+
 
     public ArtistTracksFragment() {
         setHasOptionsMenu(true);
@@ -69,16 +77,31 @@ public class ArtistTracksFragment extends Fragment {
         ListView trackResultsView = (ListView) rootView.findViewById(R.id.track_results_listview);
         trackResultsView.setAdapter(trackResultsAdapter);
 
-        if (artistDetailIntent != null && artistDetailIntent.hasExtra(Intent.EXTRA_TEXT)) {
-            artistId = artistDetailIntent.getStringExtra(Intent.EXTRA_TEXT);
-            String artistName = artistDetailIntent.getStringExtra(Intent.EXTRA_TITLE);
+
+        if (artistDetailIntent != null && artistDetailIntent.hasExtra(ArtistSearchFragment.ARTIST_ID_EXTRA)) {
+            artistId = artistDetailIntent.getStringExtra(ArtistSearchFragment.ARTIST_ID_EXTRA);
+            artistName = artistDetailIntent.getStringExtra(ArtistSearchFragment.ARTIST_NAME_EXTRA);
 
             ((DetailActivity)getActivity()).setActionBarSubTitle(artistName);
             UpdateTopTracks(artistId);
         }
         else {
-            Log.d(LOG_TAG, "Intent passed is null.");
+            Log.e(LOG_TAG, "Intent passed is null!");
         }
+
+        trackResultsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                Track track = (Track) trackResultsAdapter.getItem(position);
+
+
+                Intent playbackIntent = new Intent(getActivity(), PlaybackActivity.class)
+                        .putExtra(TRACK_ID_EXTRA, track.id)
+                        .putExtra(ARTIST_ID_EXTRA, artistId);
+
+                startActivity(playbackIntent);
+            }
+        });
 
         return rootView;
     }

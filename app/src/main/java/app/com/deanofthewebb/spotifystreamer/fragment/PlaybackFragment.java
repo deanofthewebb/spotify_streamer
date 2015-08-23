@@ -1,9 +1,7 @@
 package app.com.deanofthewebb.spotifystreamer.fragment;
 
-import android.app.Activity;
-import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,8 +10,11 @@ import app.com.deanofthewebb.spotifystreamer.R;
 
 public class PlaybackFragment extends Fragment {
 
+    protected static final String ARTIST_KEY = "a_n_k";
+    protected static final String TRACK_KEY = "a_n_k";
+
     public PlaybackFragment() {
-        // Required empty public constructor
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -25,20 +26,10 @@ public class PlaybackFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_playback, container, false);
-    }
+        View rootView = inflater.inflate(R.layout.fragment_playback, container, false);
 
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-
+        FetchTrackInfoTask trackInfoTask = new FetchTrackInfoTask();
+        trackInfoTask.execute(getActivity());
+        return rootView;
     }
 }

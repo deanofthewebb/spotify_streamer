@@ -38,6 +38,9 @@ public class ArtistSearchFragment extends Fragment {
 
     private final String PARCEL_ARTISTS = "parcel_artists";
 
+    public static final String ARTIST_ID_EXTRA = "a_id_e";
+    public static final String ARTIST_NAME_EXTRA = "a_n_e";
+
     public ArtistSearchFragment() {
         artistsFound = new ArrayList<ParceableArtist>();
     }
@@ -79,8 +82,8 @@ public class ArtistSearchFragment extends Fragment {
                 Artist artist = (Artist) artistResultsAdapter.getItem(position);
 
                 Intent artistDetailIntent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT, artist.id)
-                        .putExtra(Intent.EXTRA_TITLE, artist.name);
+                        .putExtra(ARTIST_ID_EXTRA, artist.id)
+                        .putExtra(ARTIST_NAME_EXTRA, artist.name);
 
                 startActivity(artistDetailIntent);
             }

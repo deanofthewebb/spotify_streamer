@@ -1,5 +1,6 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:id="@+id/playback_container"
     android:layout_height="match_parent"
     tools:context="app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment">
 
@@ -15,27 +16,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="Coldplay"
         />
     <TextView
         android:id="@+id/list_item_track_album"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="Ghost Stories"
         />
+
     <ImageView
         android:id="@+id/list_item_album_art"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:src="@drawable/ghost_stories"/>
+        android:maxHeight="300dp"
+        android:maxWidth="300dp"
+        android:layout_gravity="center" />
     <TextView
         android:id="@+id/list_item_track_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="A Sky Full of Stars"
         />
 
 

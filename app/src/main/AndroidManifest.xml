@@ -37,5 +37,14 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activity.MainActivity" />
         </activity>
+        <activity
+            android:name=".activity.PlaybackActivity"
+            android:label="@string/title_activity_playback"
+            android:parentActivityName=".activity.DetailActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="app.com.deanofthewebb.spotifystreamer.activity.DetailActivity" />
+        </activity>
     </application>
+
 </manifest>
