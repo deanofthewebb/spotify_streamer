@@ -2,7 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:name="app.com.deanofthewebb.spotifystreamer.ArtistDetailActivityFragment"
     android:id="@+id/detail_container"
-    tools:layout="@layout/fragment_artist_detail"
+    tools:layout="@layout/fragment_detail"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     />

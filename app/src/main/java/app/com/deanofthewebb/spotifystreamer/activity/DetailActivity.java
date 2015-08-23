@@ -7,19 +7,19 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import app.com.deanofthewebb.spotifystreamer.fragment.ArtistDetailActivityFragment;
+import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 import app.com.deanofthewebb.spotifystreamer.R;
 
 
-public class ArtistDetailActivity extends ActionBarActivity {
+public class DetailActivity extends ActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_artist_detail);
+        setContentView(R.layout.activity_detail);
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.detail_container, new ArtistDetailActivityFragment())
+                    .add(R.id.detail_container, new ArtistTracksFragment())
                     .commit();
         }
     }

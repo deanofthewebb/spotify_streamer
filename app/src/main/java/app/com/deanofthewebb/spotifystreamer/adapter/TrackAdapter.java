@@ -40,7 +40,7 @@ public class TrackAdapter extends ArrayAdapter<Track> {
         Track track = getItem(position);
 
         if (convertView == null) {
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.track_result, parent, false);
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.list_item_track, parent, false);
             holder = new ViewHolder();
             holder.track_name = (TextView) convertView.findViewById(R.id.track_name_textview);
             holder.track_album_name = (TextView) convertView.findViewById(R.id.track_album_textview);

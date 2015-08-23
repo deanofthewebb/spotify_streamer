@@ -22,7 +22,7 @@ import java.util.Map;
 
 import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.activity.ArtistDetailActivity;
+import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import app.com.deanofthewebb.spotifystreamer.adapter.TrackAdapter;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
@@ -32,13 +32,14 @@ import kaaes.spotify.webapi.android.models.Tracks;
 import retrofit.RetrofitError;
 
 
-public class ArtistDetailActivityFragment extends Fragment {
-    private final String LOG_TAG = ArtistDetailActivityFragment.class.getSimpleName();
+public class ArtistTracksFragment extends Fragment {
+    private final String LOG_TAG = ArtistTracksFragment.class.getSimpleName();
     private final String PARCEL_TRACKS = "parcel_tracks";
     private TrackAdapter trackResultsAdapter;
     private ArrayList<ParceableTrack> tracksFound;
+    private String artistId;
 
-    public ArtistDetailActivityFragment() {
+    public ArtistTracksFragment() {
         setHasOptionsMenu(true);
         tracksFound = new ArrayList<ParceableTrack>();
     }
@@ -46,7 +47,7 @@ public class ArtistDetailActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_artist_detail, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         Intent artistDetailIntent = getActivity().getIntent();
 
         if (savedInstanceState != null) {
@@ -69,10 +70,10 @@ public class ArtistDetailActivityFragment extends Fragment {
         trackResultsView.setAdapter(trackResultsAdapter);
 
         if (artistDetailIntent != null && artistDetailIntent.hasExtra(Intent.EXTRA_TEXT)) {
-            String artistId = artistDetailIntent.getStringExtra(Intent.EXTRA_TEXT);
+            artistId = artistDetailIntent.getStringExtra(Intent.EXTRA_TEXT);
             String artistName = artistDetailIntent.getStringExtra(Intent.EXTRA_TITLE);
 
-            ((ArtistDetailActivity)getActivity()).setActionBarSubTitle(artistName);
+            ((DetailActivity)getActivity()).setActionBarSubTitle(artistName);
             UpdateTopTracks(artistId);
         }
         else {
@@ -94,6 +95,15 @@ public class ArtistDetailActivityFragment extends Fragment {
         super.onSaveInstanceState(savedInstanceState);
 
         savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, tracksFound);
+    }
+
+    @Override
+    public void onOptionsMenuClosed(Menu menu) {
+        super.onOptionsMenuClosed(menu);
+
+        if (artistId != null) {
+            UpdateTopTracks(artistId);
+        }
     }
 
     private void UpdateTopTracks(String artistID) {
@@ -140,6 +150,7 @@ public class ArtistDetailActivityFragment extends Fragment {
         protected void onPostExecute(Tracks results) {
             if (results != null && trackResultsAdapter != null) {
                 trackResultsAdapter.clear();
+
 
                 if (results.tracks.size() > 10) {
                     results.tracks = results.tracks.subList(0, 10);

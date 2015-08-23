@@ -22,7 +22,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".activity.ArtistDetailActivity"
+            android:name=".activity.DetailActivity"
             android:label="@string/title_activity_artist_detail"
             android:parentActivityName=".activity.MainActivity" >
             <meta-data
