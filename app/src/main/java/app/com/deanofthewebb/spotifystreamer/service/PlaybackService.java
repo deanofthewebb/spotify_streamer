@@ -12,6 +12,7 @@ import android.util.Log;
 import java.io.IOException;
 
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
+import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
@@ -21,23 +22,28 @@ import retrofit.RetrofitError;
 
 public class PlaybackService extends IntentService {
     private final String LOG_TAG = PlaybackService.class.getSimpleName();
-    private IBinder mBinder;
 
     public static final String ACTION_PLAY = "action.PLAY";
     public static final String ACTION_PAUSE = "action.PAUSE";
     public static final String ACTION_DESTROY = "action.DESTROY";
     public static final String ACTION_CREATE = "action.CREATE";
-    public static final String ACTION_SCRUB = "action.SCRUB";
 
     public MediaPlayer mMediaPlayer;
+    private IBinder mBinder;
     private SpotifyService mSpotifyService;
-    public Track mTrack;
+    private Track mTrack;
     private int mCurrentPosition = 0;
 
 
-    public PlaybackService() {
-        super("PlaybackService");
+    public class LocalBinder extends Binder {
+        public PlaybackService getService() {
+            return PlaybackService.this;
+        }
     }
+
+
+    public PlaybackService() { super("PlaybackService"); }
+
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -46,20 +52,6 @@ public class PlaybackService extends IntentService {
         }
 
         return mBinder;
-    }
-
-    private void sendDataToReceivers() {
-        Intent intent = new Intent("my-event");
-        intent.putExtra("track", new ParceableTrack(mTrack.name, mTrack.album.name,
-                mTrack.album.images.get(0), mTrack.artists.get(0)));
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-    }
-
-
-    public class LocalBinder extends Binder {
-        public PlaybackService getService() {
-            return PlaybackService.this;
-        }
     }
 
 
@@ -94,7 +86,10 @@ public class PlaybackService extends IntentService {
                 break;
 
             case ACTION_DESTROY:
-                if (mMediaPlayer != null) mMediaPlayer.release();
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.stop();
+                    mMediaPlayer.release();
+                }
                 break;
         }
     }
@@ -106,6 +101,15 @@ public class PlaybackService extends IntentService {
         }
     }
 
+
+    private void sendDataToReceivers() {
+        Intent intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
+        intent.putExtra(PlaybackFragment.TRACK_DATA, new ParceableTrack(mTrack.name, mTrack.album.name,
+                mTrack.album.images.get(0), mTrack.artists.get(0)));
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+
     private void initializeSpotifyApi() {
         if (mSpotifyService == null) {
             SpotifyApi api = new SpotifyApi();
@@ -113,17 +117,18 @@ public class PlaybackService extends IntentService {
         }
     }
 
+
     private void initializeTrack(Intent intent) {
         if (mTrack == null || trackChanged(intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA))) {
             try {
-                    mTrack = mSpotifyService.getTrack(intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
-            } catch (RetrofitError re) {
-                Log.e(LOG_TAG, "Retrofit error has occured: " + re.getMessage());
-            } catch (Exception ex) {
-                Log.e(LOG_TAG, "An unexpected error has occured: " + ex.getMessage());
+                    mTrack = mSpotifyService.
+                            getTrack(intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
             }
+            catch (RetrofitError re) { LogError("A retrofit error has occured", re); }
+            catch (Exception ex) { LogError("An unexpected error has occured", ex); }
         }
     }
+
 
     private boolean trackChanged(String trackId) {
         return !mTrack.id.equals(trackId);
@@ -137,11 +142,9 @@ public class PlaybackService extends IntentService {
         try {
             mMediaPlayer.setDataSource(mTrack.preview_url);
             mMediaPlayer.prepare();
-        } catch (IOException ioe) {
-            Log.d(LOG_TAG, "An error has occured. " + ioe.getMessage());
-            Log.e(LOG_TAG, Log.getStackTraceString(ioe));
-        }
+        } catch (IOException ioe) { LogError("An IOException has occured", ioe); }
     }
+
 
     private void initMediaPlayer() {
         mMediaPlayer = new MediaPlayer();
@@ -156,12 +159,14 @@ public class PlaybackService extends IntentService {
                 }
             });
             mMediaPlayer.prepare();
-        } catch (IOException ioe) {
-            Log.d(LOG_TAG, "An error has occured. " + ioe.getMessage());
-            Log.e(LOG_TAG, Log.getStackTraceString(ioe));
-        } catch (IllegalStateException ise) {
-            Log.d(LOG_TAG, "An illegal state exception has occured. " + ise.getMessage());
-            Log.e(LOG_TAG, Log.getStackTraceString(ise));
         }
+        catch (IOException ioe) { LogError("An IOException has occured", ioe); }
+        catch (IllegalStateException ise) { LogError("An IllegalStateException has occured", ise); }
+    }
+
+
+    private void LogError(String Message, Exception ex) {
+        Log.v(LOG_TAG, Message + ": " + ex.getMessage());
+        Log.e(LOG_TAG, Log.getStackTraceString(ex));
     }
 }

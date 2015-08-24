@@ -45,12 +45,10 @@ public class ArtistTracksFragment extends Fragment {
 
 
     public static final String TRACK_ID_EXTRA = "t_n_e";
-    public static final String ARTIST_ID_EXTRA = "ar_n_e";
-
 
     public ArtistTracksFragment() {
         setHasOptionsMenu(true);
-        tracksFound = new ArrayList<ParceableTrack>();
+        tracksFound = new ArrayList<>();
     }
 
     @Override
@@ -60,7 +58,6 @@ public class ArtistTracksFragment extends Fragment {
         Intent artistDetailIntent = getActivity().getIntent();
 
         if (savedInstanceState != null) {
-
             tracksFound = savedInstanceState.getParcelableArrayList(PARCEL_TRACKS);
 
             List<Track> trackList = new ArrayList<Track>();
@@ -74,10 +71,8 @@ public class ArtistTracksFragment extends Fragment {
             trackResultsAdapter = new TrackAdapter(getActivity(),new ArrayList<Track>());
         }
 
-
         ListView trackResultsView = (ListView) rootView.findViewById(R.id.track_results_listview);
         trackResultsView.setAdapter(trackResultsAdapter);
-
 
         if (artistDetailIntent != null && artistDetailIntent.hasExtra(ArtistSearchFragment.ARTIST_ID_EXTRA)) {
             artistId = artistDetailIntent.getStringExtra(ArtistSearchFragment.ARTIST_ID_EXTRA);
@@ -93,12 +88,11 @@ public class ArtistTracksFragment extends Fragment {
         trackResultsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                Track track = (Track) trackResultsAdapter.getItem(position);
+                Track track = trackResultsAdapter.getItem(position);
 
 
                 Intent playbackIntent = new Intent(getActivity(), PlaybackActivity.class)
-                        .putExtra(TRACK_ID_EXTRA, track.id)
-                        .putExtra(ARTIST_ID_EXTRA, artistId);
+                        .putExtra(TRACK_ID_EXTRA, track.id);
 
                 startActivity(playbackIntent);
             }
@@ -115,25 +109,20 @@ public class ArtistTracksFragment extends Fragment {
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-        // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
-
         savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, tracksFound);
     }
 
     @Override
     public void onOptionsMenuClosed(Menu menu) {
         super.onOptionsMenuClosed(menu);
-
-        if (artistId != null) {
-            UpdateTopTracks(artistId);
-        }
+        if (artistId != null) { UpdateTopTracks(artistId); }
     }
+
 
     private void UpdateTopTracks(String artistID) {
         FetchTopTracksTask topTracksTask = new FetchTopTracksTask();
         topTracksTask.execute(artistID);
-
     }
 
 
@@ -147,18 +136,17 @@ public class ArtistTracksFragment extends Fragment {
 
             try {
                     Tracks results = new Tracks();
+                    if (params != null) {
+                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                        String countryCode = preferences.getString(getString(R.string.pref_country_key), getString(R.string.pref_country_code_usa));
 
+                        Map<String, Object> options = new HashMap<String, Object>() {};
+                        options.put(SpotifyService.COUNTRY, countryCode);
 
-                if (params != null) {
-                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                    String countryCode = preferences.getString(getString(R.string.pref_country_key), getString(R.string.pref_country_code_usa));
-                    Map<String, Object> options = new HashMap<String, Object>() {};
-                    options.put(SpotifyService.COUNTRY, countryCode);
+                        results = spotify.getArtistTopTrack(params[0], options);
+                    }
 
-                    results = spotify.getArtistTopTrack(params[0], options);
-                }
-
-                return results;
+                    return results;
             }
             catch (RetrofitError re) {
                 Log.d(LOG_TAG, "Retrofit error has occured: " + re.getMessage());
@@ -175,7 +163,6 @@ public class ArtistTracksFragment extends Fragment {
             if (results != null && trackResultsAdapter != null) {
                 trackResultsAdapter.clear();
 
-
                 if (results.tracks.size() > 10) {
                     results.tracks = results.tracks.subList(0, 10);
                 }
@@ -183,9 +170,7 @@ public class ArtistTracksFragment extends Fragment {
                 trackResultsAdapter.addAll(results.tracks);
                 CreateParceableTracks(results);
             }
-            else {
-                Log.d(LOG_TAG, "No results object returned");
-            }
+            else { Log.d(LOG_TAG, "No results object returned"); }
 
             if (trackResultsAdapter != null && trackResultsAdapter.getCount() == 0) {
                 ShowNoTracksFoundToast();
