@@ -25,8 +25,8 @@
         <activity
             android:name=".activity.DetailActivity"
             android:label="@string/title_activity_artist_detail"
-            android:parentActivityName=".activity.MainActivity"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:parentActivityName=".activity.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activity.MainActivity" />
@@ -47,6 +47,11 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="app.com.deanofthewebb.spotifystreamer.activity.DetailActivity" />
         </activity>
+
+        <service
+            android:name=".service.PlaybackService"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>

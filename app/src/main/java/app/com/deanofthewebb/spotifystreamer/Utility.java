@@ -19,13 +19,8 @@ public class Utility {
     public static void SetAlbumArt(ImageView icon, Track track, boolean useSmallestArt) {
 
         int imageIndex = useSmallestArt ? track.album.images.size() - 1 : 0;
-        Log.d(LOG_TAG, "Imaged index used: " + imageIndex + " For track: " +track.name);
-
         if (!track.album.images.isEmpty()) {
             Image trackAlbumImage = track.album.images.get(imageIndex);
-            Log.d(LOG_TAG, "Found Image, Url: " + trackAlbumImage.url +
-                    " Height: " + trackAlbumImage.height +
-                    " Width: " + trackAlbumImage.width);
             SafelyLoadImageFromPicasso(icon, trackAlbumImage, useSmallestArt);
         }
         else{
@@ -63,13 +58,8 @@ public class Utility {
         }
         catch (Exception ex) {
             Log.d(LOG_TAG, "An error has occured. " + ex.getMessage());
+            Log.e(LOG_TAG, Log.getStackTraceString(ex));
 
-            StringBuilder builder = new StringBuilder();
-            StackTraceElement[] stackTrace = ex.getStackTrace();
-            for (StackTraceElement ste : stackTrace) { builder.append(ste.toString()); }
-
-
-            Log.d(LOG_TAG, builder.toString());
             albumArt.setImageResource(R.mipmap.spotify_streamer_launcher);
         }
     }

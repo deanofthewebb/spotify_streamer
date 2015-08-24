@@ -28,6 +28,7 @@ import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import app.com.deanofthewebb.spotifystreamer.adapter.TrackAdapter;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
@@ -195,12 +196,15 @@ public class ArtistTracksFragment extends Fragment {
             tracksFound.clear();
 
             for(Track track : results.tracks) {
+                Artist artist = new Artist();
+                artist.name = artistName;
+
                 if (!track.album.images.isEmpty()) {
                     Image artistImage = track.album.images.get(0);
-                    tracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage));
+                    tracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage, artist));
                 }
                 else{
-                    tracksFound.add(new ParceableTrack(track.name, track.album.name, null));
+                    tracksFound.add(new ParceableTrack(track.name, track.album.name, null, artist));
                 }
             }
         }
