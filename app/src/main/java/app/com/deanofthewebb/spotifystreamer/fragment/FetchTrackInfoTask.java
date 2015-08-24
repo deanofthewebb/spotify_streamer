@@ -11,7 +11,6 @@ import android.widget.TextView;
 
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.Utility;
-import app.com.deanofthewebb.spotifystreamer.adapter.TrackAdapter;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
