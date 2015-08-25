@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
@@ -22,8 +23,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".activity.ArtistDetailActivity"
+            android:name=".activity.DetailActivity"
             android:label="@string/title_activity_artist_detail"
+            android:launchMode="singleTop"
             android:parentActivityName=".activity.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -35,8 +37,21 @@
             android:parentActivityName=".activity.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="app.com.example.deanofthewebb.sunshine.MainActivity" />
+                android:value=".activity.MainActivity" />
         </activity>
+        <activity
+            android:name=".activity.PlaybackActivity"
+            android:label="@string/title_activity_playback"
+            android:parentActivityName=".activity.DetailActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="app.com.deanofthewebb.spotifystreamer.activity.DetailActivity" />
+        </activity>
+
+        <service
+            android:name=".service.PlaybackService"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>

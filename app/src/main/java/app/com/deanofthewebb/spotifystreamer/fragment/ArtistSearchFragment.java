@@ -21,7 +21,7 @@ import java.util.List;
 
 import app.com.deanofthewebb.spotifystreamer.model.ParceableArtist;
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.activity.ArtistDetailActivity;
+import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import app.com.deanofthewebb.spotifystreamer.adapter.ArtistAdapter;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
@@ -37,6 +37,9 @@ public class ArtistSearchFragment extends Fragment {
     private ArrayList<ParceableArtist> artistsFound;
 
     private final String PARCEL_ARTISTS = "parcel_artists";
+
+    public static final String ARTIST_ID_EXTRA = "a_id_e";
+    public static final String ARTIST_NAME_EXTRA = "a_n_e";
 
     public ArtistSearchFragment() {
         artistsFound = new ArrayList<ParceableArtist>();
@@ -78,9 +81,9 @@ public class ArtistSearchFragment extends Fragment {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Artist artist = (Artist) artistResultsAdapter.getItem(position);
 
-                Intent artistDetailIntent = new Intent(getActivity(), ArtistDetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT, artist.id)
-                        .putExtra(Intent.EXTRA_TITLE, artist.name);
+                Intent artistDetailIntent = new Intent(getActivity(), DetailActivity.class)
+                        .putExtra(ARTIST_ID_EXTRA, artist.id)
+                        .putExtra(ARTIST_NAME_EXTRA, artist.name);
 
                 startActivity(artistDetailIntent);
             }

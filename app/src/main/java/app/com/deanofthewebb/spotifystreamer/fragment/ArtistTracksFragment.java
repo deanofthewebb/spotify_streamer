@@ -12,6 +12,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -20,37 +21,43 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import app.com.deanofthewebb.spotifystreamer.activity.PlaybackActivity;
 import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.activity.ArtistDetailActivity;
+import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import app.com.deanofthewebb.spotifystreamer.adapter.TrackAdapter;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
 import retrofit.RetrofitError;
 
 
-public class ArtistDetailActivityFragment extends Fragment {
-    private final String LOG_TAG = ArtistDetailActivityFragment.class.getSimpleName();
+public class ArtistTracksFragment extends Fragment {
+    private final String LOG_TAG = ArtistTracksFragment.class.getSimpleName();
     private final String PARCEL_TRACKS = "parcel_tracks";
     private TrackAdapter trackResultsAdapter;
     private ArrayList<ParceableTrack> tracksFound;
+    private String artistId;
+    private String artistName;
 
-    public ArtistDetailActivityFragment() {
+
+    public static final String TRACK_ID_EXTRA = "t_n_e";
+
+    public ArtistTracksFragment() {
         setHasOptionsMenu(true);
-        tracksFound = new ArrayList<ParceableTrack>();
+        tracksFound = new ArrayList<>();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_artist_detail, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         Intent artistDetailIntent = getActivity().getIntent();
 
         if (savedInstanceState != null) {
-
             tracksFound = savedInstanceState.getParcelableArrayList(PARCEL_TRACKS);
 
             List<Track> trackList = new ArrayList<Track>();
@@ -64,20 +71,32 @@ public class ArtistDetailActivityFragment extends Fragment {
             trackResultsAdapter = new TrackAdapter(getActivity(),new ArrayList<Track>());
         }
 
-
         ListView trackResultsView = (ListView) rootView.findViewById(R.id.track_results_listview);
         trackResultsView.setAdapter(trackResultsAdapter);
 
-        if (artistDetailIntent != null && artistDetailIntent.hasExtra(Intent.EXTRA_TEXT)) {
-            String artistId = artistDetailIntent.getStringExtra(Intent.EXTRA_TEXT);
-            String artistName = artistDetailIntent.getStringExtra(Intent.EXTRA_TITLE);
+        if (artistDetailIntent != null && artistDetailIntent.hasExtra(ArtistSearchFragment.ARTIST_ID_EXTRA)) {
+            artistId = artistDetailIntent.getStringExtra(ArtistSearchFragment.ARTIST_ID_EXTRA);
+            artistName = artistDetailIntent.getStringExtra(ArtistSearchFragment.ARTIST_NAME_EXTRA);
 
-            ((ArtistDetailActivity)getActivity()).setActionBarSubTitle(artistName);
+            ((DetailActivity)getActivity()).setActionBarSubTitle(artistName);
             UpdateTopTracks(artistId);
         }
         else {
-            Log.d(LOG_TAG, "Intent passed is null.");
+            Log.e(LOG_TAG, "Intent passed is null!");
         }
+
+        trackResultsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                Track track = trackResultsAdapter.getItem(position);
+
+
+                Intent playbackIntent = new Intent(getActivity(), PlaybackActivity.class)
+                        .putExtra(TRACK_ID_EXTRA, track.id);
+
+                startActivity(playbackIntent);
+            }
+        });
 
         return rootView;
     }
@@ -90,16 +109,20 @@ public class ArtistDetailActivityFragment extends Fragment {
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-        // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
-
         savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, tracksFound);
     }
+
+    @Override
+    public void onOptionsMenuClosed(Menu menu) {
+        super.onOptionsMenuClosed(menu);
+        if (artistId != null) { UpdateTopTracks(artistId); }
+    }
+
 
     private void UpdateTopTracks(String artistID) {
         FetchTopTracksTask topTracksTask = new FetchTopTracksTask();
         topTracksTask.execute(artistID);
-
     }
 
 
@@ -113,18 +136,17 @@ public class ArtistDetailActivityFragment extends Fragment {
 
             try {
                     Tracks results = new Tracks();
+                    if (params != null) {
+                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                        String countryCode = preferences.getString(getString(R.string.pref_country_key), getString(R.string.pref_country_code_usa));
 
+                        Map<String, Object> options = new HashMap<String, Object>() {};
+                        options.put(SpotifyService.COUNTRY, countryCode);
 
-                if (params != null) {
-                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                    String countryCode = preferences.getString(getString(R.string.pref_country_key), getString(R.string.pref_country_code_usa));
-                    Map<String, Object> options = new HashMap<String, Object>() {};
-                    options.put(SpotifyService.COUNTRY, countryCode);
+                        results = spotify.getArtistTopTrack(params[0], options);
+                    }
 
-                    results = spotify.getArtistTopTrack(params[0], options);
-                }
-
-                return results;
+                    return results;
             }
             catch (RetrofitError re) {
                 Log.d(LOG_TAG, "Retrofit error has occured: " + re.getMessage());
@@ -148,9 +170,7 @@ public class ArtistDetailActivityFragment extends Fragment {
                 trackResultsAdapter.addAll(results.tracks);
                 CreateParceableTracks(results);
             }
-            else {
-                Log.d(LOG_TAG, "No results object returned");
-            }
+            else { Log.d(LOG_TAG, "No results object returned"); }
 
             if (trackResultsAdapter != null && trackResultsAdapter.getCount() == 0) {
                 ShowNoTracksFoundToast();
@@ -161,12 +181,15 @@ public class ArtistDetailActivityFragment extends Fragment {
             tracksFound.clear();
 
             for(Track track : results.tracks) {
+                Artist artist = new Artist();
+                artist.name = artistName;
+
                 if (!track.album.images.isEmpty()) {
                     Image artistImage = track.album.images.get(0);
-                    tracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage));
+                    tracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage, artist));
                 }
                 else{
-                    tracksFound.add(new ParceableTrack(track.name, track.album.name, null));
+                    tracksFound.add(new ParceableTrack(track.name, track.album.name, null, artist));
                 }
             }
         }

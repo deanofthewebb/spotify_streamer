@@ -6,6 +6,8 @@ import android.os.Parcelable;
 import java.util.ArrayList;
 
 import kaaes.spotify.webapi.android.models.Album;
+import kaaes.spotify.webapi.android.models.Artist;
+import kaaes.spotify.webapi.android.models.ArtistSimple;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 
@@ -23,9 +25,10 @@ public class ParceableTrack extends Track implements Parcelable {
         }
 
         album.images = new ArrayList<Image>();
+        artists = new ArrayList<ArtistSimple>();
     }
 
-    public ParceableTrack(String trackName, String albumName, Image image) {
+    public ParceableTrack(String trackName, String albumName, Image image, ArtistSimple artist) {
         this();
 
         name = trackName;
@@ -34,13 +37,17 @@ public class ParceableTrack extends Track implements Parcelable {
         if (image != null) {
             album.images.add(image);
         }
+
+        if (artist != null) {
+            artists.add(artist);
+        }
     }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         if (!album.images.isEmpty()) {
             Image image = album.images.get(0);
-            dest.writeStringArray(new String[] {name, album.name, album.uri, image.url});
+            dest.writeStringArray(new String[] {name, album.name, album.uri, image.url, artists.get(0).name});
             dest.writeIntArray(new int[] {image.width, image.height});
         }
         else {
@@ -65,9 +72,13 @@ public class ParceableTrack extends Track implements Parcelable {
         album.name = trackValues[1];
         album.uri = trackValues[2];
 
+        Artist artist = new Artist();
+        artist.name = trackValues[4];
+        artists.add(artist);
+
         int[] imageValues = in.createIntArray();
 
-        if (imageValues.length == 2 && trackValues.length == 4) {
+        if (imageValues.length >= 2 && trackValues.length >= 4) {
             album.images.add(new ParceableImage(imageValues[0], imageValues[1], trackValues[3]));
         }
     }
