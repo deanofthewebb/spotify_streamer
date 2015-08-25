@@ -69,16 +69,28 @@ public class ParceableTrack extends Track implements Parcelable {
     private ParceableTrack(Parcel in) {
         String[] trackValues = in.createStringArray();
         name = trackValues[0];
+
+        if (album == null) {
+            album = new Album();
+        }
         album.name = trackValues[1];
         album.uri = trackValues[2];
 
         Artist artist = new Artist();
+
+        if (artists == null) {
+            artists = new ArrayList<>();
+        }
         artist.name = trackValues[4];
         artists.add(artist);
 
         int[] imageValues = in.createIntArray();
 
         if (imageValues.length >= 2 && trackValues.length >= 4) {
+
+            if (album.images == null) {
+                album.images = new ArrayList<>();
+            }
             album.images.add(new ParceableImage(imageValues[0], imageValues[1], trackValues[3]));
         }
     }
