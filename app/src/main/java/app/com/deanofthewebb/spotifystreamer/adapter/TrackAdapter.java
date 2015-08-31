@@ -1,6 +1,7 @@
 package app.com.deanofthewebb.spotifystreamer.adapter;
 
 import android.app.Activity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,9 +12,12 @@ import java.util.List;
 
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.Utility;
+import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 
 public class TrackAdapter extends ArrayAdapter<Track> {
+    private static final String LOG_TAG = ArtistAdapter.class.getSimpleName();
+
     public TrackAdapter(Activity context, List<Track> tracks){
         super(context, 0, tracks);
     }
@@ -44,6 +48,9 @@ public class TrackAdapter extends ArrayAdapter<Track> {
         holder.trackName.setText(track.name);
         holder.trackAlbumName.setText(track.album.name);
         Utility.SetAlbumArt(holder.icon, track, true);
+
+
+
 
         return  convertView;
     }

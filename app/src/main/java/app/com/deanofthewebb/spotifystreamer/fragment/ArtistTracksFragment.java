@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -167,6 +168,7 @@ public class ArtistTracksFragment extends Fragment {
                     results.tracks = results.tracks.subList(0, 10);
                 }
 
+
                 trackResultsAdapter.addAll(results.tracks);
                 CreateParceableTracks(results);
             }
@@ -186,6 +188,21 @@ public class ArtistTracksFragment extends Fragment {
 
                 if (!track.album.images.isEmpty()) {
                     Image artistImage = track.album.images.get(0);
+
+                    Image trackImage = (track.album.images.get(track.album.images.size() - 1));
+
+                    Log.v(LOG_TAG, "GRABBING TRACK DATA - NAME: " + track.name);
+                    Log.v(LOG_TAG, "GRABBING TRACK DATA - API_ID: " + track.id);
+                    Log.v(LOG_TAG, "GRABBING TRACK DATA - API_URL: " + track.uri);
+                    Log.v(LOG_TAG, "GRABBING TRACK DATA - POPULARITY: " + track.popularity);
+                    Log.v(LOG_TAG, "GRABBING TRACK DATA - MARKETS: " + TextUtils.join(",", track.available_markets));
+
+
+                    Log.v(LOG_TAG, "GRABBING TRACK IMAGE DATA - WIDTH " + trackImage.width);
+                    Log.v(LOG_TAG, "GRABBING TRACK IMAGE DATA - HEIGHT: " + trackImage.height);
+                    Log.v(LOG_TAG, "GRABBING TRACK IMAGE DATA - URL: " + trackImage.url);
+
+
                     tracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage, artist));
                 }
                 else{

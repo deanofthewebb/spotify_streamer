@@ -52,6 +52,13 @@
             android:name=".service.PlaybackService"
             android:exported="false" >
         </service>
+
+        <provider
+            android:name=".data.SpotifyStreamerProvider"
+            android:authorities="app.com.deanofthewebb.spotifystreamer"
+            android:enabled="true"
+            android:exported="true" >
+        </provider>
     </application>
 
 </manifest>
