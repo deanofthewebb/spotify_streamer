@@ -11,6 +11,9 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.util.Log;
@@ -21,39 +24,64 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import org.json.JSONObject;
 
 import java.net.MalformedURLException;
-import java.nio.charset.MalformedInputException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Vector;
 
+import app.com.deanofthewebb.spotifystreamer.adapter.ArtistCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.model.ParceableArtist;
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
-import app.com.deanofthewebb.spotifystreamer.adapter.ArtistAdapter;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
 import kaaes.spotify.webapi.android.models.Image;
-import kaaes.spotify.webapi.android.models.Pager;
 import kaaes.spotify.webapi.android.models.Track;
-import kaaes.spotify.webapi.android.models.Tracks;
 import kaaes.spotify.webapi.android.models.TracksPager;
 import retrofit.RetrofitError;
 
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract.ArtistEntry;
-import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract.TrackEntry;
 
-
-
-public class ArtistSearchFragment extends Fragment {
+public class ArtistSearchFragment extends Fragment
+        implements LoaderManager.LoaderCallbacks<Cursor>{
     private final String LOG_TAG = ArtistSearchFragment.class.getSimpleName();
-    private ArtistAdapter artistResultsAdapter;
     private ArrayList<ParceableArtist> artistsFound;
+
+    private ArtistCursorAdapter mArtistCursorAdapter;
+    private ListView mListView;
+    private int mPosition = mListView.INVALID_POSITION;
+
+    private static final String SELECTED_KEY = "selected_position";
+
+    public static String mArtistQuery = "";
+
+    private static final int ARTIST_LOADER_ID = 0;
+    private static final String[] ARTIST_COLUMNS = {
+            // In this case the id needs to be fully qualified with a table name, since
+            // the content provider joins the artist & track tables in the background
+            // (both have an _id column)
+            // On the one hand, that's annoying.  On the other, you can search the track table
+            // using the artist set by the user, which is only in the Artist table.
+            // So the convenience is worth it.
+            ArtistEntry.TABLE_NAME + "." + ArtistEntry._ID,
+            ArtistEntry.COLUMN_NAME,
+            ArtistEntry.COLUMN_API_ID,
+            ArtistEntry.COLUMN_API_URI,
+            ArtistEntry.COLUMN_POPULARITY,
+            ArtistEntry.COLUMN_IMAGE_URL
+    };
+
+    // These indices are tied to ARTIST_COLUMNS.  If ARTIST_COLUMNS changes, these
+    // must change.
+    public static final int COL_ARTIST_ID = 0;
+    public static final int COL_ARTIST_NAME = 1;
+    public static final int COL_ARTIST_API_ID = 2;
+    public static final int COL_ARTIST_API_URI = 3;
+    public static final int COL_ARTIST_POPULARITY = 4;
+    public static final int COL_ARTIST_IMAGE_URL = 5;
 
     private final String PARCEL_ARTISTS = "parcel_artists";
 
@@ -74,50 +102,40 @@ public class ArtistSearchFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+
+        mArtistCursorAdapter = new ArtistCursorAdapter(getActivity(), null, 0);
         UpdateArtistsOnKeysEntered(rootView);
 
-        if (savedInstanceState != null) {
 
-            artistsFound = savedInstanceState.getParcelableArrayList(PARCEL_ARTISTS);
+        mListView = (ListView) rootView.findViewById(R.id.artist_results_listview);
+        mListView.setAdapter(mArtistCursorAdapter);
 
-            List<Artist> artistList = new ArrayList<Artist>();
-
-            for (ParceableArtist parceableArtist : artistsFound) {
-                artistList.add(parceableArtist);
-            }
-
-            artistResultsAdapter =  new ArtistAdapter(getActivity(), artistList);
-        }
-        else {
-            artistResultsAdapter =  new ArtistAdapter(getActivity(),new ArrayList<Artist>());
-        }
-
-        ListView artistResultsView = (ListView) rootView.findViewById(R.id.artist_results_listview);
-        artistResultsView.setAdapter(artistResultsAdapter);
-
-        artistResultsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                Artist artist = (Artist) artistResultsAdapter.getItem(position);
+                // if it cannot seek to that position.
+                Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
 
                 Intent artistDetailIntent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(ARTIST_ID_EXTRA, artist.id)
-                        .putExtra(ARTIST_NAME_EXTRA, artist.name);
+                        .putExtra(ARTIST_ID_EXTRA, cursor.getString(ArtistSearchFragment.COL_ARTIST_API_ID))
+                        .putExtra(ARTIST_NAME_EXTRA, cursor.getString(ArtistSearchFragment.COL_ARTIST_NAME));
 
                 startActivity(artistDetailIntent);
             }
         });
 
+        // If there's instance state, mine it for useful information.
+        // The end-goal here is that the user never knows that turning their device sideways
+        // does crazy lifecycle related things.  It should feel like some stuff stretched out,
+        // or magically appeared to take advantage of room, but data or place in the app was never
+        // actually *lost*.
+        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
+            // The listview probably hasn't even been populated yet.  Actually perform the
+            // swapout in onLoadFinished.
+            mPosition = savedInstanceState.getInt(SELECTED_KEY);
+        }
+
         return rootView;
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-
-        savedInstanceState.putParcelableArrayList(PARCEL_ARTISTS, artistsFound);
-
-        // Always call the superclass so it can save the view hierarchy state
-        super.onSaveInstanceState(savedInstanceState);
     }
 
     private void UpdateArtistsOnKeysEntered(View rootView) {
@@ -125,21 +143,25 @@ public class ArtistSearchFragment extends Fragment {
         searchText.setIconifiedByDefault(false);
         searchText.setQueryHint(getResources().getString(R.string.query_artist_hint));
         searchText.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-        @Override
-        public boolean onQueryTextSubmit(String query) {
-            final String searchKeyword = searchText.getQuery().toString();
-            UpdateArtistResults(searchKeyword);
-            return false;
-        }
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                mArtistQuery = searchText.getQuery().toString();
+                UpdateArtistResults(mArtistQuery);
+                return false;
+            }
 
-        @Override
-        public boolean onQueryTextChange(String newText) {
-            final String searchKeyword = searchText.getQuery().toString();
-            //UpdateArtistResults(searchKeyword);
-            return false;
-        }
-
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                mArtistQuery = searchText.getQuery().toString();
+                UpdateArtistResults(mArtistQuery);
+                return false;
+            }
         });
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
     }
 
     private void UpdateArtistResults(String artistQuery) {
@@ -151,6 +173,14 @@ public class ArtistSearchFragment extends Fragment {
             ShowNoNetworkFoundToast();
         }
 
+        // Initialize Loader here
+        if (!getLoaderManager().hasRunningLoaders()) {
+            getLoaderManager().initLoader(ARTIST_LOADER_ID, null, this);
+        } else {
+            // Restart if query changes
+            getLoaderManager().destroyLoader(ARTIST_LOADER_ID);
+            getLoaderManager().initLoader(ARTIST_LOADER_ID, null, this);
+        }
     }
 
     private boolean isNetworkAvailable() {
@@ -166,47 +196,82 @@ public class ArtistSearchFragment extends Fragment {
         Toast.makeText(getActivity(), text, duration).show();
     }
 
-    public class FetchArtistsTask extends AsyncTask<String, Void, ArtistsPager> {
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        // This is called when a new Loader needs to be created.  This
+        // fragment only uses one loader, so we don't care about checking the id.
+
+        // To only show current and future dates, filter the query to return weather only for
+        // dates after or including today.
+
+        // Sort order:  Descending, by name relevance.
+        String sortOrder = ArtistEntry.COLUMN_NAME + " DESC";
+
+        Uri projection;
+
+        if ("".equals(mArtistQuery)) {
+            projection = ArtistEntry.CONTENT_URI;
+        } else {
+            projection = ArtistEntry.buildArtistByQuery(mArtistQuery);
+        }
+
+        return new CursorLoader(getActivity(),
+                projection,
+                ARTIST_COLUMNS,
+                null,
+                null,
+                sortOrder);
+    }
+
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        // When tablets rotate, the currently selected list item needs to be saved.
+        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
+        // so check for that before storing.
+        if (mPosition != ListView.INVALID_POSITION) {
+            outState.putInt(SELECTED_KEY, mPosition);
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        mArtistCursorAdapter.swapCursor(cursor);
+        if (mPosition != ListView.INVALID_POSITION) {
+            // If we don't need to restart the loader, and there's a desired position to restore
+            // to, do so now.
+            mListView.smoothScrollToPosition(mPosition);
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        loader.forceLoad();
+        mArtistCursorAdapter.swapCursor(null);
+    }
+
+
+    public class FetchArtistsTask extends AsyncTask<String, Void, Void> {
         private final String LOG_TAG = FetchArtistsTask.class.getSimpleName();
 
 
         @Override
-        protected ArtistsPager doInBackground(String... params) {
+        protected Void doInBackground(String... params) {
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
 
-            ArtistsPager results = new ArtistsPager();
-
-            if (params != null) {
-                results = getArtistDataFromSpotifyWrapper(spotify, params[0]);
-
-            }
-
-                return results;
+            //Load Data into db
+            if (params != null) { getArtistDataFromSpotifyWrapper(spotify, params[0]); }
+            return null;
         }
 
-        @Override
-        protected void onPostExecute(ArtistsPager results) {
-            if (results != null && artistResultsAdapter != null) {
-                CreateParceableArtists(results);
-
-                artistResultsAdapter.clear();
-                artistResultsAdapter.addAll(artistsFound);
-            }
-            else {
-                Log.d(LOG_TAG, "No results object returned");
-            }
-
-            if (artistResultsAdapter.getCount() == 0) {
-                ShowNoArtistsFoundToast();
-            }
-        }
 
         long addArtist(String name, String apiId, String apiUri, int popularity, String imageUrl) {
             long artistId;
 
-            // First, check if the location with this city name exists in the db
-            Cursor artistCursor = getActivity().getContentResolver().query(
+            // First, check if the artist with this city name exists in the db
+            Cursor artistCursor =  getActivity().getContentResolver().query(
                     SpotifyStreamerContract.ArtistEntry.CONTENT_URI,
                     new String[]{SpotifyStreamerContract.ArtistEntry._ID},
                     SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID + " = ?",
@@ -247,7 +312,6 @@ public class ArtistSearchFragment extends Fragment {
         private ArtistsPager getArtistDataFromSpotifyWrapper(SpotifyService spotify, String artistQuery) {
             ArtistsPager results = new ArtistsPager();;
             try {
-
                 if (artistQuery != null) results = spotify.searchArtists(artistQuery);
 
                 for (Artist artist : results.artists.items) {
@@ -326,38 +390,11 @@ public class ArtistSearchFragment extends Fragment {
             Log.d(LOG_TAG, "SpotifyStreamer Service Complete: " + inserted + " tracks inserted");
         }
 
-
-        private void CreateParceableArtists(ArtistsPager results) {
-            artistsFound.clear();
-
-            for(Artist artist : results.artists.items) {
-                if (!artist.images.isEmpty()) {
-                    //Image artistImage = artist.images.get(0);
-
-                    Image artistImage = (artist.images.get(artist.images.size() - 1));
-
-                    Log.v(LOG_TAG, "GRABBING ARTIST DATA - NAME: " + artist.name);
-                    Log.v(LOG_TAG, "GRABBING ARTIST DATA - API_ID: " + artist.id);
-                    Log.v(LOG_TAG, "GRABBING ARTIST DATA - API_URL: " + artist.uri);
-                    Log.v(LOG_TAG, "GRABBING ARTIST DATA - POPULARITY: " + artist.popularity);
-
-
-                    Log.v(LOG_TAG, "GRABBING ARTIST IMAGE DATA - WIDTH " + artistImage.width);
-                    Log.v(LOG_TAG, "GRABBING ARTIST IMAGE DATA - HEIGHT: " + artistImage.height);
-                    Log.v(LOG_TAG, "GRABBING ARTIST IMAGE DATA - URL: " + artistImage.url);
-
-                    artistsFound.add(new ParceableArtist(artist.name, artist.id, artistImage));
-                }
-                else {
-                    artistsFound.add(new ParceableArtist(artist.name, artist.id, null));
-                }
-            }
-        }
-
         private void ShowNoArtistsFoundToast() {
             CharSequence text = getString(R.string.no_artists_found);
             int duration = Toast.LENGTH_LONG;
             Toast.makeText(getActivity(), text, duration).show();
         }
     }
+
 }

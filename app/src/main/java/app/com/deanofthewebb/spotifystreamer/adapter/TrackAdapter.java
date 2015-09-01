@@ -16,7 +16,7 @@ import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 
 public class TrackAdapter extends ArrayAdapter<Track> {
-    private static final String LOG_TAG = ArtistAdapter.class.getSimpleName();
+    private static final String LOG_TAG = TrackAdapter.class.getSimpleName();
 
     public TrackAdapter(Activity context, List<Track> tracks){
         super(context, 0, tracks);

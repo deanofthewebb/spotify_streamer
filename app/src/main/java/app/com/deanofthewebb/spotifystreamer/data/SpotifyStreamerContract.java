@@ -5,8 +5,6 @@ import android.content.ContentUris;
 import android.net.Uri;
 import android.provider.BaseColumns;
 
-import java.util.List;
-
 /**
  * Defines table and column names for the weatspotify streamer local cache.
  */
@@ -58,6 +56,16 @@ public class SpotifyStreamerContract {
         public static Uri buildArtistUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
+
+        public static Uri buildArtistByQuery(String artistQuery) {
+            return CONTENT_URI.buildUpon()
+                    .appendPath(artistQuery).build();
+        }
+
+        public static String getArtistQueryFromUri(Uri uri) {
+            return uri.getPathSegments().get(1);
+        }
+
     }
 
     /* Inner class that defines the table contents of the artist table */

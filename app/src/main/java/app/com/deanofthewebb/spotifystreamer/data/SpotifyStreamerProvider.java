@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.util.Log;
 
 public class SpotifyStreamerProvider extends ContentProvider {
     private static final String LOG_TAG = SpotifyStreamerProvider.class.getSimpleName();
@@ -16,7 +17,6 @@ public class SpotifyStreamerProvider extends ContentProvider {
     public SpotifyStreamerProvider() {
     }
 
-
     // The URI Matcher used by this content provider.
     private static final UriMatcher sUriMatcher = buildUriMatcher();
     private SpotifyStreamerDbHelper mOpenHelper;
@@ -24,12 +24,15 @@ public class SpotifyStreamerProvider extends ContentProvider {
     static final int TRACK = 100;
     static final int TRACK_WITH_ARTIST = 101;
     static final int ARTIST = 300;
+    static final int ARTIST_BY_NAME = 301;
 
     private static final SQLiteQueryBuilder sTrackByArtistQueryBuilder;
+    private static final SQLiteQueryBuilder sArtistQueryBuilder;
 
 
     static{
         sTrackByArtistQueryBuilder = new SQLiteQueryBuilder();
+        sArtistQueryBuilder = new SQLiteQueryBuilder();
 
         //This is an inner join which looks like
         //track INNER JOIN artist ON track.artist_key = artist._id
@@ -40,7 +43,15 @@ public class SpotifyStreamerProvider extends ContentProvider {
                         "." + SpotifyStreamerContract.TrackEntry.COLUMN_ARTIST_KEY +
                         " = " + SpotifyStreamerContract.ArtistEntry.TABLE_NAME +
                         "." + SpotifyStreamerContract.ArtistEntry._ID);
+
+        sArtistQueryBuilder.setTables(SpotifyStreamerContract.ArtistEntry.TABLE_NAME);
     }
+
+
+    //ORDER BY ID ASC
+    private static final String sBestMatchSortOrder = SpotifyStreamerContract.ArtistEntry.TABLE_NAME + "." + SpotifyStreamerContract.ArtistEntry._ID + " ASC";
+
+
 
     //artist.artist_name = ?
     private static final String sArtistName =
@@ -52,6 +63,7 @@ public class SpotifyStreamerProvider extends ContentProvider {
         final String authority = SpotifyStreamerContract.CONTENT_AUTHORITY;
 
         uRIMatcher.addURI(authority, SpotifyStreamerContract.PATH_ARTIST, ARTIST);
+        uRIMatcher.addURI(authority, SpotifyStreamerContract.PATH_ARTIST + "/*", ARTIST_BY_NAME);
         uRIMatcher.addURI(authority, SpotifyStreamerContract.PATH_TRACK, TRACK);
         uRIMatcher.addURI(authority, SpotifyStreamerContract.PATH_TRACK + "/*", TRACK_WITH_ARTIST);
 
@@ -72,6 +84,31 @@ public class SpotifyStreamerProvider extends ContentProvider {
                 projection,
                 selection,
                 selectionArgs,
+                null,
+                null,
+                sortOrder
+        );
+    }
+
+    private Cursor getArtistByBestMatch(Uri uri, String[] projection) {
+        String artistQuery = SpotifyStreamerContract.ArtistEntry.getArtistQueryFromUri(uri);
+
+        String[] selectionArgs;
+        String selection;
+
+        //WHERE word LIKE '%artistQuery%'
+        selection = SpotifyStreamerContract.ArtistEntry.TABLE_NAME +
+                "." + SpotifyStreamerContract.ArtistEntry.COLUMN_NAME + " LIKE '?%'";
+
+        selection = selection.replace("?", artistQuery);
+
+        String sortOrder = sBestMatchSortOrder.replace("?", artistQuery);
+        Log.v(LOG_TAG, "SORT ORDER BEING USED: " + sortOrder);
+
+        return sArtistQueryBuilder.query(mOpenHelper.getReadableDatabase(),
+                projection,
+                selection,
+                null,
                 null,
                 null,
                 sortOrder
@@ -180,6 +217,11 @@ public class SpotifyStreamerProvider extends ContentProvider {
                         null,
                         sortOrder
                 );
+                break;
+            }
+            // "artist/*"
+            case ARTIST_BY_NAME: {
+                retCursor = getArtistByBestMatch(uri, projection);
                 break;
             }
             // "track"
