@@ -48,8 +48,6 @@ import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract.Artist
 public class ArtistSearchFragment extends Fragment
         implements LoaderManager.LoaderCallbacks<Cursor>{
     private final String LOG_TAG = ArtistSearchFragment.class.getSimpleName();
-    private ArrayList<ParceableArtist> artistsFound;
-
     private ArtistCursorAdapter mArtistCursorAdapter;
     private ListView mListView;
     private int mPosition = mListView.INVALID_POSITION;
@@ -83,14 +81,7 @@ public class ArtistSearchFragment extends Fragment
     public static final int COL_ARTIST_POPULARITY = 4;
     public static final int COL_ARTIST_IMAGE_URL = 5;
 
-    private final String PARCEL_ARTISTS = "parcel_artists";
-
-    public static final String ARTIST_ID_EXTRA = "a_id_e";
-    public static final String ARTIST_NAME_EXTRA = "a_n_e";
-
-    public ArtistSearchFragment() {
-        artistsFound = new ArrayList<ParceableArtist>();
-    }
+    public ArtistSearchFragment() { }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -117,8 +108,9 @@ public class ArtistSearchFragment extends Fragment
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
 
                 Intent artistDetailIntent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(ARTIST_ID_EXTRA, cursor.getString(ArtistSearchFragment.COL_ARTIST_API_ID))
-                        .putExtra(ARTIST_NAME_EXTRA, cursor.getString(ArtistSearchFragment.COL_ARTIST_NAME));
+                        .putExtra(ArtistEntry.COLUMN_API_ID, cursor.getString(ArtistSearchFragment.COL_ARTIST_API_ID))
+                        .putExtra(ArtistEntry._ID, cursor.getString(ArtistSearchFragment.COL_ARTIST_ID))
+                        .putExtra(ArtistEntry.COLUMN_NAME, cursor.getString(ArtistSearchFragment.COL_ARTIST_NAME));
 
                 startActivity(artistDetailIntent);
             }
@@ -153,7 +145,7 @@ public class ArtistSearchFragment extends Fragment
             @Override
             public boolean onQueryTextChange(String newText) {
                 mArtistQuery = searchText.getQuery().toString();
-                UpdateArtistResults(mArtistQuery);
+                //UpdateArtistResults(mArtistQuery);
                 return false;
             }
         });
@@ -177,7 +169,7 @@ public class ArtistSearchFragment extends Fragment
         if (!getLoaderManager().hasRunningLoaders()) {
             getLoaderManager().initLoader(ARTIST_LOADER_ID, null, this);
         } else {
-            // Restart if query changes
+            // Restart if query changes - not working yet
             getLoaderManager().destroyLoader(ARTIST_LOADER_ID);
             getLoaderManager().initLoader(ARTIST_LOADER_ID, null, this);
         }
@@ -247,7 +239,6 @@ public class ArtistSearchFragment extends Fragment
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-        loader.forceLoad();
         mArtistCursorAdapter.swapCursor(null);
     }
 
@@ -310,7 +301,7 @@ public class ArtistSearchFragment extends Fragment
         }
 
         private ArtistsPager getArtistDataFromSpotifyWrapper(SpotifyService spotify, String artistQuery) {
-            ArtistsPager results = new ArtistsPager();;
+            ArtistsPager results = new ArtistsPager();
             try {
                 if (artistQuery != null) results = spotify.searchArtists(artistQuery);
 
@@ -327,67 +318,13 @@ public class ArtistSearchFragment extends Fragment
                     if (artistRowId == -1) throw new MalformedURLException("THERE WAS AN ERROR INSERTING " + artist.name + " - " + artist.id);
                 }
             } catch (RetrofitError re) {
-                Log.d(LOG_TAG, "Retrofit error has occured: " + re.getMessage());
+                Log.d(LOG_TAG, "Retrofit error has occurred: " + re.getMessage());
             }
             catch (Exception ex) {
-                Log.d(LOG_TAG, "An error has occured: " + ex.getMessage());
-            }
-            finally {
-                return results;
-            }
-        }
-
-
-        private void insertTracks(TracksPager results, int artistRowId) {
-            final int TOP_X_TRACKS = 10;
-
-            if (results.tracks.items.size() > TOP_X_TRACKS) {
-                results.tracks.items = results.tracks.items.subList(0, 10);
+                Log.d(LOG_TAG, "An error has occurred: " + ex.getMessage());
             }
 
-            Vector<ContentValues> cVVector = new Vector<ContentValues>(TOP_X_TRACKS);
-
-            // Add tracks to Vector
-            for (Track track : results.tracks.items) {
-                // First, check if the track with this city name exists in the db
-                Cursor trackCursor = getActivity().getContentResolver().query(
-                        SpotifyStreamerContract.TrackEntry.CONTENT_URI,
-                        new String[]{SpotifyStreamerContract.TrackEntry._ID},
-                        SpotifyStreamerContract.TrackEntry.COLUMN_API_ID + " = ?",
-                        new String[]{track.id},
-                        null);
-
-                if (!trackCursor.moveToFirst()) {
-
-                    String trackImageUrl = "";
-                    if (!track.album.images.isEmpty()) {
-                        Image albumImage = (track.album.images.get(track.album.images.size() - 1));
-                        trackImageUrl = albumImage.url;
-                    }
-
-                    ContentValues trackValues = new ContentValues();
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_NAME, track.name);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID, track.id);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_API_URI, track.uri);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_PREVIEW_URL, track.preview_url);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_POPULARITY, track.popularity);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_MARKETS, TextUtils.join(",", track.available_markets));
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_IMAGE_URL, trackImageUrl);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_ARTIST_KEY, artistRowId);
-
-                    cVVector.add(trackValues);
-                }
-            }
-
-            int inserted = 0;
-            // add to database
-            if ( cVVector.size() > 0 ) {
-                ContentValues[] cvArray = new ContentValues[cVVector.size()];
-                cVVector.toArray(cvArray);
-                inserted = getActivity().getContentResolver().bulkInsert(SpotifyStreamerContract.TrackEntry.CONTENT_URI, cvArray);
-            }
-
-            Log.d(LOG_TAG, "SpotifyStreamer Service Complete: " + inserted + " tracks inserted");
+            return results;
         }
 
         private void ShowNoArtistsFoundToast() {

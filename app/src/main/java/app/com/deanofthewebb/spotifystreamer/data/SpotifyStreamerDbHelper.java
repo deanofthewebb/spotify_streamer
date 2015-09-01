@@ -13,7 +13,7 @@ import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract.TrackE
 public class SpotifyStreamerDbHelper extends SQLiteOpenHelper {
 
     // If you change the database schema, you must increment the database version.
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     static final String DATABASE_NAME = "spotify_streamer.db";
 
@@ -46,6 +46,7 @@ public class SpotifyStreamerDbHelper extends SQLiteOpenHelper {
                 TrackEntry.COLUMN_MARKETS + " TEXT NOT NULL, " +
                 TrackEntry.COLUMN_POPULARITY + " INTEGER NOT NULL, " +
                 TrackEntry.COLUMN_IMAGE_URL + " TEXT NOT NULL, " +
+                TrackEntry.COLUMN_ALBUM_NAME + " TEXT NOT NULL, " +
                 TrackEntry.COLUMN_ARTIST_KEY + " INTEGER NOT NULL, " +
 
                 // Set up the artist column as a foreign key to location table.

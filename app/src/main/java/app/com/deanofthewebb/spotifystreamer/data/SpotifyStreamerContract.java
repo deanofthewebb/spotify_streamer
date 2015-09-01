@@ -93,6 +93,8 @@ public class SpotifyStreamerContract {
 
         public static final String COLUMN_MARKETS = "markets";
 
+        public static final String COLUMN_ALBUM_NAME = "album_name";
+
         public static final String COLUMN_IMAGE_URL = "image_url";
 
         public static final String COLUMN_ARTIST_KEY = "artist_id";
@@ -101,12 +103,12 @@ public class SpotifyStreamerContract {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
 
-        public static Uri buildTrackArtist(String artistName) {
+        public static Uri buildTrackArtist(String artistId) {
             return CONTENT_URI.buildUpon()
-                    .appendPath(artistName).build();
+                    .appendPath(artistId).build();
         }
 
-        public static String getTrackArtistFromUri(Uri uri) {
+        public static String getTrackArtistIdFromUri(Uri uri) {
             return uri.getPathSegments().get(1);
         }
     }

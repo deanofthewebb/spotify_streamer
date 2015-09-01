@@ -18,6 +18,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import app.com.deanofthewebb.spotifystreamer.R;
+import app.com.deanofthewebb.spotifystreamer.Utility;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistSearchFragment;
 
 public class ArtistCursorAdapter extends CursorAdapter {
@@ -60,31 +61,9 @@ public class ArtistCursorAdapter extends CursorAdapter {
     }
 
     private void SetImageView(ImageView icon, String imageUrl, Context context) {
-        if (!imageUrl.isEmpty()) SafelyLoadImageFromPicasso(icon, imageUrl, context);
+        if (!imageUrl.isEmpty()) Utility.SafelyLoadImageFromPicasso(icon, imageUrl, context);
         else icon.setImageResource(R.mipmap.spotify_streamer_launcher);
     }
 
-    private void SafelyLoadImageFromPicasso(ImageView icon, String imageUrl, Context context) {
-        try {
-            URL url = new URL(imageUrl);
-            Uri uri = Uri.parse( url.toURI().toString() );
 
-            Picasso.with(context)
-                    .load(uri)
-                    .resizeDimen(R.dimen.artist_image_dimen, R.dimen.artist_image_dimen)
-                    .centerCrop()
-                    .into(icon);
-        }
-        catch (MalformedURLException e1) {
-            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
-        }
-        catch (URISyntaxException e) {
-            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
-        }
-        catch (Exception ex) {
-            Log.d(LOG_TAG, "An error has occured" + ex.getMessage());
-            Log.d(LOG_TAG, ex.getStackTrace().toString());
-            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
-        }
-    }
 }

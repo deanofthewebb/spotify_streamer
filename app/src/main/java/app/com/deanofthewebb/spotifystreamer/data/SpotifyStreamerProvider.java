@@ -58,6 +58,11 @@ public class SpotifyStreamerProvider extends ContentProvider {
             SpotifyStreamerContract.ArtistEntry.TABLE_NAME+
                     "." + SpotifyStreamerContract.ArtistEntry.COLUMN_NAME + " = ? ";
 
+    //artist.artist_api_id = ?
+    private static final String sArtistId =
+            SpotifyStreamerContract.ArtistEntry.TABLE_NAME+
+                    "." + SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID + " = ? ";
+
     static UriMatcher buildUriMatcher() {
         final  UriMatcher uRIMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         final String authority = SpotifyStreamerContract.CONTENT_AUTHORITY;
@@ -72,12 +77,12 @@ public class SpotifyStreamerProvider extends ContentProvider {
 
 
     private Cursor getTrackByArtist(Uri uri, String[] projection, String sortOrder) {
-        String artistId = SpotifyStreamerContract.TrackEntry.getTrackArtistFromUri(uri);
+        String artistId = SpotifyStreamerContract.TrackEntry.getTrackArtistIdFromUri(uri);
 
         String[] selectionArgs;
         String selection;
 
-        selection = sArtistName;
+        selection = sArtistId;
         selectionArgs = new String[]{artistId};
 
         return sTrackByArtistQueryBuilder.query(mOpenHelper.getReadableDatabase(),
