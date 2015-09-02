@@ -69,7 +69,6 @@ public class PlaybackService extends IntentService {
 
             try { mTrack = Utility.buildTrackFromContentProviderId(getApplicationContext(), mTrackRowId);}
             catch (Exception e) { Log.e(LOG_TAG, Log.getStackTraceString(e));}
-            Log.v(LOG_TAG, "PlaybackService onHandleIntent. mTrack DATA: API ID: " + mTrack.id);
         }
         updateState(intent.getAction(), mTrack.id);
     }
@@ -81,6 +80,8 @@ public class PlaybackService extends IntentService {
             case ACTION_CREATE:
                 if (mMediaPlayer == null) initMediaPlayer();
                 else if (trackChanged(trackId)) resetMediaPlayer();
+                mMediaPlayer.seekTo(mCurrentPosition);
+                mMediaPlayer.start();
                 break;
 
             case ACTION_PLAY:
@@ -91,17 +92,19 @@ public class PlaybackService extends IntentService {
                 break;
 
             case ACTION_SKIP_BACK:
-                //TODO: If Playing, skip back to beginning
                 if (mMediaPlayer != null) {
                     resetMediaPlayer();
                     initMediaPlayer();
                     mMediaPlayer.start();
                 }
-
-                //TODO: If less than 5 seconds when intent fired, skip to previous track
                 break;
 
             case ACTION_SKIP_FORWARD:
+                if (mMediaPlayer != null) {
+                    resetMediaPlayer();
+                    initMediaPlayer();
+                    mMediaPlayer.start();
+                }
                 break;
 
             case ACTION_PAUSE:
@@ -128,6 +131,7 @@ public class PlaybackService extends IntentService {
                 break;
         }
     }
+
 
     public void updateTrackProgress (int progress) {
         if (mMediaPlayer != null) {
@@ -177,12 +181,6 @@ public class PlaybackService extends IntentService {
     private void resetMediaPlayer() {
         mMediaPlayer.stop();
         mMediaPlayer.reset();
-
-//        try {
-//            mMediaPlayer.setDataSource(mTrack.preview_url);
-//            mMediaPlayer.prepare();
-//        } catch (IOException ioe) { LogError("An IOException has occured", ioe); }
-
         initMediaPlayer();
     }
 

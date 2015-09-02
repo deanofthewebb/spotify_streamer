@@ -45,8 +45,7 @@ public class PlaybackFragment extends Fragment {
     public static final String TRACK_POSITION = "position_data";
     private ViewHolder mViewHolder;
     private Track mTrack;
-    private static final String TRACK_LIST = "t_l_b";
-    private Bundle mTrackList;
+    private String mTrackRowId;
 
     public static class ViewHolder {
 
@@ -121,24 +120,8 @@ public class PlaybackFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        String trackRowId = (savedInstanceState != null)
-                    ? savedInstanceState.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)
-                    : getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
 
-        mTrackList = (savedInstanceState != null)
-                ? savedInstanceState.getBundle(TRACK_LIST)
-                : getActivity().getIntent().getExtras();
 
-        Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
-        serviceIntent
-                .setAction(PlaybackService.ACTION_CREATE)
-                .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, trackRowId);
-
-        getActivity().startService(serviceIntent);
-
-        getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(RECEIVER_INTENT_FILTER));
     }
 
     @Override
@@ -147,6 +130,26 @@ public class PlaybackFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_playback, container, false);
         mViewHolder = new ViewHolder(rootView);
         return rootView;
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        mTrackRowId = (savedInstanceState != null)
+                ? savedInstanceState.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)
+                : getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+
+        Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
+        serviceIntent
+                .setAction(PlaybackService.ACTION_CREATE)
+                .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrackRowId);
+
+        getActivity().startService(serviceIntent);
+
+        getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
+                new IntentFilter(RECEIVER_INTENT_FILTER));
+
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -167,9 +170,10 @@ public class PlaybackFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrack.id);
-        outState.putBundle(TRACK_LIST, mTrackList);
         super.onSaveInstanceState(outState);
     }
+
+
 
 
     @Override
@@ -177,10 +181,9 @@ public class PlaybackFragment extends Fragment {
         super.onDestroy();
         // Unbind from the service
         if (mServiceBounded) {
-            mPlaybackService.updateState(PlaybackService.ACTION_DESTROY, null);
+            //mPlaybackService.updateState(PlaybackService.ACTION_DESTROY, null);
             getActivity().unbindService(mServiceConnection);
             mServiceBounded = false;
-            Log.v(LOG_TAG, "Exiting Activity: unBinding from Service: " + mPlaybackService.toString());
         }
     }
 
@@ -197,6 +200,7 @@ public class PlaybackFragment extends Fragment {
 
             mViewHolder.artistName.setText(artistNames);
             mViewHolder.startTime.setText(formatDuration(0));
+            mViewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
             mViewHolder.playPauseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -253,12 +257,62 @@ public class PlaybackFragment extends Fragment {
             mViewHolder.nextTrackButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    ShowToBeImplementedToast();
+                    String nextTrackRowId = getNextTrackRowId();
+                    Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
+                    serviceIntent
+                            .setAction(PlaybackService.ACTION_SKIP_FORWARD)
+                            .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, nextTrackRowId);
+
+                    getActivity().startService(serviceIntent);
                 }
             });
 
         } else { Log.v(LOG_TAG, "No Track Found!"); }
     }
+
+    private String getNextTrackRowId() {
+        String nextTrackRowID = "";
+
+        //Grab all ten tracks from artist id
+        Cursor tracklistCursor = getActivity().getContentResolver().query(
+                SpotifyStreamerContract.TrackEntry.buildTrackArtist(mTrack.artists.get(0).id),
+                null,
+                null,
+                null,
+                SpotifyStreamerContract.TrackEntry.COLUMN_POPULARITY + " DESC"
+        );
+
+        boolean foundPosition = false;
+        int position = -1;
+        String trackId;
+        while (tracklistCursor.moveToNext() && !foundPosition) {
+            trackId = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
+
+            if (trackId.equals(mTrack.id)) {
+                position = tracklistCursor.getPosition();
+                foundPosition = true;
+            }
+        }
+
+        if (position < 0 ) Log.e(LOG_TAG, "Could not find Track in Track List!");
+
+        tracklistCursor.moveToPosition(position);
+        //Get next id
+        if (tracklistCursor.isLast()) tracklistCursor.moveToFirst();
+        else tracklistCursor.moveToNext();
+        nextTrackRowID = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_ID);
+        tracklistCursor.close();
+
+        // Change mTrack using previous id
+        try {
+            mTrack = Utility.buildTrackFromContentProviderId(getActivity(), nextTrackRowID);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, e.getMessage());
+            Log.e(LOG_TAG, Log.getStackTraceString(e));
+        }
+        return  nextTrackRowID;
+    }
+
 
     private String getPreviousTrackRowId() {
         String previousTrackRowID = "";
@@ -274,39 +328,29 @@ public class PlaybackFragment extends Fragment {
 
         boolean foundPosition = false;
         int position = -1;
+        String trackId;
         while (tracklistCursor.moveToNext() && !foundPosition) {
-            String trackId = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
-            Log.v(LOG_TAG,"CHECKING TRACKLIST POSITION: " + tracklistCursor.getPosition());
+            trackId = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
 
             if (trackId.equals(mTrack.id)) {
                 position = tracklistCursor.getPosition();
-                previousTrackRowID = Integer.toString(position);
+                previousTrackRowID = Integer.toString(tracklistCursor.getPosition());
                 foundPosition = true;
             }
         }
 
-        if (position < 0 ) {
-            Log.e(LOG_TAG, "Could not find Track in Track List!");
-            Log.e(LOG_TAG, Log.getStackTraceString(new Exception()));
-        }
+        if (position < 0 ) Log.e(LOG_TAG, "Could not find Track in Track List!");
+        int THREE_SECONDS = 3000;
 
-        tracklistCursor.moveToPosition(position);
-
-        if (mPlaybackService.mMediaPlayer.getCurrentPosition() < 3000) {
+        if (mPlaybackService.mMediaPlayer.getCurrentPosition() < THREE_SECONDS) {
+            tracklistCursor.moveToPosition(position);
             //Get previous id
-            if (tracklistCursor.isFirst()) {
-                Log.v(LOG_TAG, "TRACKLIST CURSOR IS FIRST, GRABBING LAST IN ROW");
-                tracklistCursor.moveToLast();
-            } else {
-                Log.v(LOG_TAG, "TRACKLIST CURSOR IS IN POSITION: " + tracklistCursor.getPosition() + ", GRABBING PREVIOUS");
-                tracklistCursor.moveToPrevious();
-            }
-
+            if (tracklistCursor.isFirst()) tracklistCursor.moveToLast();
+            else tracklistCursor.moveToPrevious();
             previousTrackRowID = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_ID);
             tracklistCursor.close();
-            Log.v(LOG_TAG, "Returning Track ID: " + previousTrackRowID);
-            // Change mTrack using previous id
 
+            // Change mTrack using previous id
             try {
                 mTrack = Utility.buildTrackFromContentProviderId(getActivity(), previousTrackRowID);
             } catch (Exception e) {
@@ -314,14 +358,7 @@ public class PlaybackFragment extends Fragment {
                 Log.e(LOG_TAG, Log.getStackTraceString(e));
             }
         }
-
         return  previousTrackRowID;
-    }
-
-    private void ShowToBeImplementedToast() {
-        CharSequence text = "This button will be implemented.. eventually";
-        int duration = Toast.LENGTH_LONG;
-        Toast.makeText(getActivity(), text, duration).show();
     }
 
 

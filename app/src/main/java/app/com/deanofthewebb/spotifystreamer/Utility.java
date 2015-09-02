@@ -3,8 +3,6 @@ package app.com.deanofthewebb.spotifystreamer;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -55,19 +53,17 @@ public class Utility {
         }
         catch (Exception ex) {
             Log.d(LOG_TAG, "An error has occured" + ex.getMessage());
-            Log.d(LOG_TAG, ex.getStackTrace().toString());
+            Log.d(LOG_TAG, Log.getStackTraceString(ex));
             icon.setImageResource(R.mipmap.spotify_streamer_launcher);
         }
     }
 
     public static Track buildTrackFromContentProviderId(Context context, String trackRowId) throws Exception {
-        Log.v(LOG_TAG, "TRACKROWID: " + trackRowId);
         return convertCursorToTrack(context, SpotifyStreamerContract.TrackEntry._ID + " = ? ", trackRowId);
     }
 
 
     public static Track buildTrackFromContentProviderApiId(Context context, String ApiId) throws Exception {
-        Log.v(LOG_TAG, "API_ID: " + ApiId);
         return convertCursorToTrack(context, SpotifyStreamerContract.TrackEntry.COLUMN_API_ID + " = ? ", ApiId);
     }
 

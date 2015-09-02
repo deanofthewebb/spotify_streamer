@@ -47,8 +47,6 @@ import retrofit.RetrofitError;
 public class ArtistTracksFragment extends Fragment
         implements LoaderManager.LoaderCallbacks<Cursor>{
     private final String LOG_TAG = ArtistTracksFragment.class.getSimpleName();
-    private final String PARCEL_TRACKS = "parcel_tracks";
-    private ArrayList<ParceableTrack> tracksFound;
     private static String mArtistApiId;
     private static String mArtistRowId;
     private static String mArtistName;
@@ -97,18 +95,11 @@ public class ArtistTracksFragment extends Fragment
 
     public ArtistTracksFragment() {
         setHasOptionsMenu(true);
-        tracksFound = new ArrayList<>();
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-        savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, tracksFound);
     }
 
     @Override
