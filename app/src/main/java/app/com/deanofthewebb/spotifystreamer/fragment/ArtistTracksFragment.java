@@ -7,7 +7,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
@@ -25,7 +24,6 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.net.MalformedURLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -33,7 +31,6 @@ import java.util.Vector;
 import app.com.deanofthewebb.spotifystreamer.activity.PlaybackActivity;
 import app.com.deanofthewebb.spotifystreamer.adapter.TrackCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
-import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import kaaes.spotify.webapi.android.SpotifyApi;
@@ -299,7 +296,6 @@ public class ArtistTracksFragment extends Fragment
                             SpotifyStreamerContract.TrackEntry.COLUMN_API_ID + " = ?",
                             new String[]{track.id}
                     );
-                    Log.v(LOG_TAG, "Inserted Row: " + rowsUpdate);
                     if (rowsUpdate < 1)  throw new android.database.SQLException("Failed to update row: " + rowsUpdate);
                 }
                 trackCursor.close();
@@ -318,8 +314,6 @@ public class ArtistTracksFragment extends Fragment
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
-
-            Log.d(LOG_TAG, "SpotifyStreamer Service Complete: " + inserted + " tracks inserted");
         }
 
 

@@ -1,18 +1,12 @@
 package app.com.deanofthewebb.spotifystreamer.activity;
 
 
-import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
-
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
-import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 
 public class PlaybackActivity extends AppCompatActivity{
     private final String LOG_TAG = PlaybackActivity.class.getSimpleName();

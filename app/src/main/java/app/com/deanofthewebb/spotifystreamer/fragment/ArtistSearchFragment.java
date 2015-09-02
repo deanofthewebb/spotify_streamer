@@ -15,7 +15,6 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.widget.SearchView;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,12 +25,9 @@ import android.widget.Toast;
 
 
 import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Vector;
 
 import app.com.deanofthewebb.spotifystreamer.adapter.ArtistCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
-import app.com.deanofthewebb.spotifystreamer.model.ParceableArtist;
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import kaaes.spotify.webapi.android.SpotifyApi;
@@ -39,8 +35,6 @@ import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
 import kaaes.spotify.webapi.android.models.Image;
-import kaaes.spotify.webapi.android.models.Track;
-import kaaes.spotify.webapi.android.models.TracksPager;
 import retrofit.RetrofitError;
 
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract.ArtistEntry;

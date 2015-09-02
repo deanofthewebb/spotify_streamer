@@ -1,6 +1,5 @@
 package app.com.deanofthewebb.spotifystreamer.fragment;
 
-
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -10,6 +9,7 @@ import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -22,13 +22,11 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.Locale;
 
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.Utility;
@@ -41,8 +39,11 @@ public class PlaybackFragment extends Fragment {
     private final String LOG_TAG = PlaybackFragment.class.getSimpleName();
     PlaybackService mPlaybackService;
     boolean mServiceBounded = false;
-    public static final String RECEIVER_INTENT_FILTER = "my-event";
+
+    public static final String RECEIVER_INTENT_FILTER = "my_event";
     public static final String TRACK_POSITION = "position_data";
+    public static final String CHANGE_TRACK = "change_track";
+
     private ViewHolder mViewHolder;
     private Track mTrack;
     private String mTrackRowId;
@@ -78,16 +79,21 @@ public class PlaybackFragment extends Fragment {
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-
             if (intent.hasExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)) {
                 String trackRowId = intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-
                 try { mTrack = Utility.buildTrackFromContentProviderId(context, trackRowId);}
                 catch (Exception e) { e.printStackTrace(); }
 
-                setChildViews();
+                Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
+                serviceIntent.setAction(PlaybackService.ACTION_CREATE);
+                getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+
+                if (intent.hasExtra(CHANGE_TRACK) && intent.getBooleanExtra(CHANGE_TRACK, true)) {
+                    setChildViews();
+                }
             }
-            else if (intent.hasExtra(TRACK_POSITION)) {
+            else if (intent.hasExtra(TRACK_POSITION)){
+
                 int currentPosition = Integer.parseInt(intent.getStringExtra(TRACK_POSITION));
                 mViewHolder.seekBar.setProgress(currentPosition);
                 mViewHolder.startTime.setText(formatDuration(currentPosition));
@@ -103,6 +109,7 @@ public class PlaybackFragment extends Fragment {
             PlaybackService.LocalBinder binder = (PlaybackService.LocalBinder) service;
             mPlaybackService = binder.getService();
             mServiceBounded = true;
+            setChildViews();
         }
 
         @Override
@@ -118,37 +125,52 @@ public class PlaybackFragment extends Fragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Intent serviceIntent;
+        if (savedInstanceState != null) {
+            try {
+                mTrack =  Utility.buildTrackFromContentProviderApiId(getActivity(),
+                        savedInstanceState.getString(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID));
+
+                Cursor trackCursor = getActivity().getContentResolver().query(
+                        SpotifyStreamerContract.TrackEntry.CONTENT_URI,
+                        null,
+                        SpotifyStreamerContract.TrackEntry.COLUMN_API_ID + " = ? ",
+                        new String[]{mTrack.id},
+                        null);
+
+                trackCursor.moveToNext();
+                mTrackRowId = trackCursor.getString(ArtistTracksFragment.COL_TRACK_ID);
+                trackCursor.close();
+
+            } catch (Exception e) { e.printStackTrace(); }
+
+            serviceIntent = getServiceIntent();
+            getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+        } else {
+            mTrackRowId = getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+            serviceIntent = getServiceIntent();
+            getActivity().startService(serviceIntent);
+        }
+
+        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
+                new IntentFilter(RECEIVER_INTENT_FILTER));
+
         super.onCreate(savedInstanceState);
-
-
-
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         View rootView = inflater.inflate(R.layout.fragment_playback, container, false);
         mViewHolder = new ViewHolder(rootView);
+
         return rootView;
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
-        mTrackRowId = (savedInstanceState != null)
-                ? savedInstanceState.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)
-                : getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-
-        Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
-        serviceIntent
-                .setAction(PlaybackService.ACTION_CREATE)
-                .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrackRowId);
-
-        getActivity().startService(serviceIntent);
-
-        getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(RECEIVER_INTENT_FILTER));
-
         super.onActivityCreated(savedInstanceState);
     }
 
@@ -169,11 +191,9 @@ public class PlaybackFragment extends Fragment {
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrack.id);
+        outState.putString(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID, mTrack.id);
         super.onSaveInstanceState(outState);
     }
-
-
 
 
     @Override
@@ -181,7 +201,6 @@ public class PlaybackFragment extends Fragment {
         super.onDestroy();
         // Unbind from the service
         if (mServiceBounded) {
-            //mPlaybackService.updateState(PlaybackService.ACTION_DESTROY, null);
             getActivity().unbindService(mServiceConnection);
             mServiceBounded = false;
         }
@@ -230,13 +249,6 @@ public class PlaybackFragment extends Fragment {
                 }
             });
 
-            int duration = mPlaybackService.mMediaPlayer.getDuration();
-            String formattedDuration = formatDuration(duration);
-            mViewHolder.endTime.setText(formattedDuration);
-            mViewHolder.seekBar.setProgress(0);
-            mViewHolder.seekBar.setVisibility(ProgressBar.VISIBLE);
-            mViewHolder.seekBar.setMax(duration);
-
             mViewHolder.previousTrackButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -267,13 +279,29 @@ public class PlaybackFragment extends Fragment {
                 }
             });
 
-        } else { Log.v(LOG_TAG, "No Track Found!"); }
+            int duration = mPlaybackService.mMediaPlayer.getDuration();
+            String formattedDuration = formatDuration(duration);
+
+            mViewHolder.endTime.setText(formattedDuration);
+            mViewHolder.seekBar.setProgress(mPlaybackService.mMediaPlayer.getCurrentPosition());
+            mViewHolder.seekBar.setVisibility(ProgressBar.VISIBLE);
+            mViewHolder.seekBar.setMax(duration);
+        } else { Log.e(LOG_TAG, "No Track Found!"); }
     }
+
+
+    @NonNull
+    private Intent getServiceIntent() {
+        Intent serviceIntent;
+        serviceIntent = new Intent(getActivity(), PlaybackService.class);
+        serviceIntent.setAction(PlaybackService.ACTION_CREATE)
+                .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrackRowId);
+        return serviceIntent;
+    }
+
 
     private String getNextTrackRowId() {
         String nextTrackRowID = "";
-
-        //Grab all ten tracks from artist id
         Cursor tracklistCursor = getActivity().getContentResolver().query(
                 SpotifyStreamerContract.TrackEntry.buildTrackArtist(mTrack.artists.get(0).id),
                 null,
@@ -316,8 +344,6 @@ public class PlaybackFragment extends Fragment {
 
     private String getPreviousTrackRowId() {
         String previousTrackRowID = "";
-
-        //Grab all ten tracks from artist id
         Cursor tracklistCursor = getActivity().getContentResolver().query(
                 SpotifyStreamerContract.TrackEntry.buildTrackArtist(mTrack.artists.get(0).id),
                 null,
@@ -334,15 +360,11 @@ public class PlaybackFragment extends Fragment {
 
             if (trackId.equals(mTrack.id)) {
                 position = tracklistCursor.getPosition();
-                previousTrackRowID = Integer.toString(tracklistCursor.getPosition());
                 foundPosition = true;
             }
         }
 
         if (position < 0 ) Log.e(LOG_TAG, "Could not find Track in Track List!");
-        int THREE_SECONDS = 3000;
-
-        if (mPlaybackService.mMediaPlayer.getCurrentPosition() < THREE_SECONDS) {
             tracklistCursor.moveToPosition(position);
             //Get previous id
             if (tracklistCursor.isFirst()) tracklistCursor.moveToLast();
@@ -357,14 +379,13 @@ public class PlaybackFragment extends Fragment {
                 Log.e(LOG_TAG, e.getMessage());
                 Log.e(LOG_TAG, Log.getStackTraceString(e));
             }
-        }
         return  previousTrackRowID;
     }
 
 
     private String formatDuration(int duration){
         Date curDateTime = new Date(duration);
-        SimpleDateFormat formatter = new SimpleDateFormat("m:ss");
+        SimpleDateFormat formatter = new SimpleDateFormat("m:ss", Locale.US);
         return formatter.format(curDateTime);
     }
 

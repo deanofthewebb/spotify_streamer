@@ -51,6 +51,10 @@
         <service
             android:name=".service.PlaybackService"
             android:exported="false" >
+            <intent-filter>
+                <action android:name="action.CREATE" />
+                <action android:name="action.RECONNECT" />
+            </intent-filter>
         </service>
 
         <provider
