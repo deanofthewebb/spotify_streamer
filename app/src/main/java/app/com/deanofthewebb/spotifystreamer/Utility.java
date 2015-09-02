@@ -60,16 +60,24 @@ public class Utility {
         }
     }
 
-    public static Track buildTrackFromContentProvider(Context context, String trackRowId) throws Exception {
-
+    public static Track buildTrackFromContentProviderId(Context context, String trackRowId) throws Exception {
         Log.v(LOG_TAG, "TRACKROWID: " + trackRowId);
+        return convertCursorToTrack(context, SpotifyStreamerContract.TrackEntry._ID + " = ? ", trackRowId);
+    }
 
 
+    public static Track buildTrackFromContentProviderApiId(Context context, String ApiId) throws Exception {
+        Log.v(LOG_TAG, "API_ID: " + ApiId);
+        return convertCursorToTrack(context, SpotifyStreamerContract.TrackEntry.COLUMN_API_ID + " = ? ", ApiId);
+    }
+
+
+    public static Track convertCursorToTrack(Context context, String selection, String selectionArg)  throws Exception {
         Cursor trackCursor = context.getContentResolver().query(
                 SpotifyStreamerContract.TrackEntry.CONTENT_URI,
                 null,
-                SpotifyStreamerContract.TrackEntry._ID + " = ? ",
-                new String[]{trackRowId},
+                selection,
+                new String[]{selectionArg},
                 null);
 
 
@@ -78,27 +86,27 @@ public class Utility {
         Image image = new Image();
 
 
-       if (trackCursor.moveToFirst()) {
-           Artist artist = buildArtistFromContentProvider(context, trackCursor.getString(ArtistTracksFragment.COL_TRACK_ARTIST_KEY));
-           track.id = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
-           track.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_NAME);
-           track.uri = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_URI);
-           track.popularity = Integer.getInteger(trackCursor.getString(6), 10);
-           track.preview_url = trackCursor.getString(4);
+        if (trackCursor.moveToNext()) {
+            Artist artist = buildArtistFromContentProvider(context, trackCursor.getString(ArtistTracksFragment.COL_TRACK_ARTIST_KEY));
+            track.id = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
+            track.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_NAME);
+            track.uri = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_URI);
+            track.popularity = Integer.getInteger(trackCursor.getString(6), 10);
+            track.preview_url = trackCursor.getString(4);
 
-           album.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_ALBUM_NAME);
-           album.images = new ArrayList<>();
-           image.url = trackCursor.getString(7);
-           album.images.add(image);
+            album.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_ALBUM_NAME);
+            album.images = new ArrayList<>();
+            image.url = trackCursor.getString(7);
+            album.images.add(image);
 
-           track.album = album;
-           track.artists = new ArrayList<>();
-           //track.artists.add(artist);
-           String[] markets = new String[] {trackCursor.getString(5)};
-           track.available_markets = new ArrayList<>(Arrays.asList(markets));
+            track.album = album;
+            track.artists = new ArrayList<>();
+            track.artists.add(artist);
+            String[] markets = new String[] {trackCursor.getString(5)};
+            track.available_markets = new ArrayList<>(Arrays.asList(markets));
 
-           if (trackCursor.moveToNext()) throw new Exception("More than one row returned in Track Cursor (row id): " + trackRowId);
-       } else { throw new Exception("Track Cursor did not return any results for row id: " + trackRowId);}
+            if (trackCursor.moveToNext()) throw new Exception("More than one row returned in Track Cursor (selectionArg): " + selectionArg);
+        } else { throw new Exception("Track Cursor did not return any results for selection Arg: " + selectionArg);}
 
         trackCursor.close();
         return track;
@@ -108,7 +116,6 @@ public class Utility {
     public static Artist buildArtistFromContentProvider(Context context, String artistRowId) throws Exception {
         Artist artist = new Artist();
 
-        Log.v(LOG_TAG, "ARTISTROWID: " + artistRowId);
         Cursor artistCursor = context.getContentResolver().query(
                 SpotifyStreamerContract.ArtistEntry.CONTENT_URI,
                 null,
@@ -116,7 +123,7 @@ public class Utility {
                 new String[]{artistRowId},
                 null);
 
-        if (artistCursor.moveToFirst()) {
+        if (artistCursor.moveToNext()) {
             artist.id = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_API_ID);
             artist.name = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_NAME);
             artist.uri = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_API_URI);

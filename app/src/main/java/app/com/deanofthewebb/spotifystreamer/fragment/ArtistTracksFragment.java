@@ -118,14 +118,6 @@ public class ArtistTracksFragment extends Fragment
     }
 
 
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        Intent artistDetailIntent = getActivity().getIntent();
-        super.onActivityCreated(savedInstanceState);
-    }
-
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -150,7 +142,6 @@ public class ArtistTracksFragment extends Fragment
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 Intent playbackIntent = new Intent(getActivity(), PlaybackActivity.class)
-                        .putExtras(getTrackBundle(cursor))
                         .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, cursor.getString(ArtistTracksFragment.COL_TRACK_ID));
 
                 startActivity(playbackIntent);
@@ -160,25 +151,6 @@ public class ArtistTracksFragment extends Fragment
         return rootView;
     }
 
-    @NonNull
-    private Bundle getTrackBundle(Cursor cursor) {
-        Bundle trackBundle = new Bundle();
-        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID,
-                cursor.getString(ArtistTracksFragment.COL_TRACK_API_ID));
-        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_MARKETS,
-                cursor.getString(ArtistTracksFragment.COL_TRACK_MARKETS));
-        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_NAME,
-                cursor.getString(ArtistTracksFragment.COL_TRACK_NAME));
-        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_ALBUM_NAME,
-                cursor.getString(ArtistTracksFragment.COL_TRACK_ALBUM_NAME));
-        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_IMAGE_URL,
-                cursor.getString(ArtistTracksFragment.COL_TRACK_IMAGE_URL));
-        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_PREVIEW_URL,
-                cursor.getString(ArtistTracksFragment.COL_TRACK_PREVIEW_URL));
-        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_ARTIST_KEY,
-                cursor.getString(ArtistTracksFragment.COL_TRACK_ARTIST_KEY));
-        return trackBundle;
-    }
 
     private void UpdateTopTracks() {
         FetchTopTracksTask topTracksTask = new FetchTopTracksTask();

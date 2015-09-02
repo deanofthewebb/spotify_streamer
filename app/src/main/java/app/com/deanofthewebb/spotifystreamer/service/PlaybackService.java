@@ -19,7 +19,6 @@ import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
-import retrofit.RetrofitError;
 
 
 public class PlaybackService extends IntentService {
@@ -68,9 +67,9 @@ public class PlaybackService extends IntentService {
             mTrackRowId = intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
             initializeSpotifyApi();
 
-            try { mTrack = Utility.buildTrackFromContentProvider(getApplicationContext(), mTrackRowId);}
+            try { mTrack = Utility.buildTrackFromContentProviderId(getApplicationContext(), mTrackRowId);}
             catch (Exception e) { Log.e(LOG_TAG, Log.getStackTraceString(e));}
-            Log.v(LOG_TAG, "mTrack DATA. ID: " + mTrack.id);
+            Log.v(LOG_TAG, "PlaybackService onHandleIntent. mTrack DATA: API ID: " + mTrack.id);
         }
         updateState(intent.getAction(), mTrack.id);
     }
@@ -92,7 +91,13 @@ public class PlaybackService extends IntentService {
                 break;
 
             case ACTION_SKIP_BACK:
-                //TODO: If PLaying, skip back to beginning
+                //TODO: If Playing, skip back to beginning
+                if (mMediaPlayer != null) {
+                    resetMediaPlayer();
+                    initMediaPlayer();
+                    mMediaPlayer.start();
+                }
+
                 //TODO: If less than 5 seconds when intent fired, skip to previous track
                 break;
 
@@ -131,7 +136,7 @@ public class PlaybackService extends IntentService {
     }
 
 
-    private void sendDataToReceivers(boolean timer) {
+    public void sendDataToReceivers(boolean timer) {
         Intent intent;
         if (timer) {
             intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
@@ -142,6 +147,7 @@ public class PlaybackService extends IntentService {
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
+
 
     public void startTimerTask() {
         if (null == mTimer) mTimer = new Timer();
@@ -154,12 +160,14 @@ public class PlaybackService extends IntentService {
             }
         }, 1000, 1000);}
 
+
     private void initializeSpotifyApi() {
         if (mSpotifyService == null) {
             SpotifyApi api = new SpotifyApi();
             mSpotifyService = api.getService();
         }
     }
+
 
     private boolean trackChanged(String trackId) {
         return !mTrack.id.equals(trackId);
@@ -170,10 +178,12 @@ public class PlaybackService extends IntentService {
         mMediaPlayer.stop();
         mMediaPlayer.reset();
 
-        try {
-            mMediaPlayer.setDataSource(mTrack.preview_url);
-            mMediaPlayer.prepare();
-        } catch (IOException ioe) { LogError("An IOException has occured", ioe); }
+//        try {
+//            mMediaPlayer.setDataSource(mTrack.preview_url);
+//            mMediaPlayer.prepare();
+//        } catch (IOException ioe) { LogError("An IOException has occured", ioe); }
+
+        initMediaPlayer();
     }
 
 

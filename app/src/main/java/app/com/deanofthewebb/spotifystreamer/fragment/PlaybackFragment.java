@@ -7,7 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.net.Uri;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.Fragment;
@@ -24,22 +24,17 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.squareup.picasso.Picasso;
-
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.Set;
 
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.Utility;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
-import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import app.com.deanofthewebb.spotifystreamer.service.PlaybackService;
 import kaaes.spotify.webapi.android.models.ArtistSimple;
-import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 
 public class PlaybackFragment extends Fragment {
@@ -50,7 +45,8 @@ public class PlaybackFragment extends Fragment {
     public static final String TRACK_POSITION = "position_data";
     private ViewHolder mViewHolder;
     private Track mTrack;
-    private Track mBackupTrack;
+    private static final String TRACK_LIST = "t_l_b";
+    private Bundle mTrackList;
 
     public static class ViewHolder {
 
@@ -87,7 +83,7 @@ public class PlaybackFragment extends Fragment {
             if (intent.hasExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)) {
                 String trackRowId = intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
 
-                try { mTrack = Utility.buildTrackFromContentProvider(context, trackRowId);}
+                try { mTrack = Utility.buildTrackFromContentProviderId(context, trackRowId);}
                 catch (Exception e) { e.printStackTrace(); }
 
                 setChildViews();
@@ -129,6 +125,9 @@ public class PlaybackFragment extends Fragment {
                     ? savedInstanceState.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)
                     : getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
 
+        mTrackList = (savedInstanceState != null)
+                ? savedInstanceState.getBundle(TRACK_LIST)
+                : getActivity().getIntent().getExtras();
 
         Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
         serviceIntent
@@ -168,6 +167,7 @@ public class PlaybackFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrack.id);
+        outState.putBundle(TRACK_LIST, mTrackList);
         super.onSaveInstanceState(outState);
     }
 
@@ -196,7 +196,7 @@ public class PlaybackFragment extends Fragment {
             String artistNames = TextUtils.join(",", artists);
 
             mViewHolder.artistName.setText(artistNames);
-            mViewHolder.startTime.setText("0:00");
+            mViewHolder.startTime.setText(formatDuration(0));
             mViewHolder.playPauseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -236,11 +236,86 @@ public class PlaybackFragment extends Fragment {
             mViewHolder.previousTrackButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+
+                    if (mPlaybackService.mMediaPlayer.isPlaying()) {
+
+                        String previousTrackRowId = getPreviousTrackRowId();
+                        Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
+                        serviceIntent
+                                .setAction(PlaybackService.ACTION_SKIP_BACK)
+                                .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, previousTrackRowId);
+
+                        getActivity().startService(serviceIntent);
+                    }
+                }
+            });
+
+            mViewHolder.nextTrackButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
                     ShowToBeImplementedToast();
                 }
             });
 
         } else { Log.v(LOG_TAG, "No Track Found!"); }
+    }
+
+    private String getPreviousTrackRowId() {
+        String previousTrackRowID = "";
+
+        //Grab all ten tracks from artist id
+        Cursor tracklistCursor = getActivity().getContentResolver().query(
+                SpotifyStreamerContract.TrackEntry.buildTrackArtist(mTrack.artists.get(0).id),
+                null,
+                null,
+                null,
+                SpotifyStreamerContract.TrackEntry.COLUMN_POPULARITY + " DESC"
+        );
+
+        boolean foundPosition = false;
+        int position = -1;
+        while (tracklistCursor.moveToNext() && !foundPosition) {
+            String trackId = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
+            Log.v(LOG_TAG,"CHECKING TRACKLIST POSITION: " + tracklistCursor.getPosition());
+
+            if (trackId.equals(mTrack.id)) {
+                position = tracklistCursor.getPosition();
+                previousTrackRowID = Integer.toString(position);
+                foundPosition = true;
+            }
+        }
+
+        if (position < 0 ) {
+            Log.e(LOG_TAG, "Could not find Track in Track List!");
+            Log.e(LOG_TAG, Log.getStackTraceString(new Exception()));
+        }
+
+        tracklistCursor.moveToPosition(position);
+
+        if (mPlaybackService.mMediaPlayer.getCurrentPosition() < 3000) {
+            //Get previous id
+            if (tracklistCursor.isFirst()) {
+                Log.v(LOG_TAG, "TRACKLIST CURSOR IS FIRST, GRABBING LAST IN ROW");
+                tracklistCursor.moveToLast();
+            } else {
+                Log.v(LOG_TAG, "TRACKLIST CURSOR IS IN POSITION: " + tracklistCursor.getPosition() + ", GRABBING PREVIOUS");
+                tracklistCursor.moveToPrevious();
+            }
+
+            previousTrackRowID = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_ID);
+            tracklistCursor.close();
+            Log.v(LOG_TAG, "Returning Track ID: " + previousTrackRowID);
+            // Change mTrack using previous id
+
+            try {
+                mTrack = Utility.buildTrackFromContentProviderId(getActivity(), previousTrackRowID);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, e.getMessage());
+                Log.e(LOG_TAG, Log.getStackTraceString(e));
+            }
+        }
+
+        return  previousTrackRowID;
     }
 
     private void ShowToBeImplementedToast() {
@@ -251,11 +326,9 @@ public class PlaybackFragment extends Fragment {
 
 
     private String formatDuration(int duration){
-        return String.format("%d:%2d",
-                TimeUnit.MILLISECONDS.toMinutes(duration),
-                TimeUnit.MILLISECONDS.toSeconds(duration) -
-                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
-        );
+        Date curDateTime = new Date(duration);
+        SimpleDateFormat formatter = new SimpleDateFormat("m:ss");
+        return formatter.format(curDateTime);
     }
 
     private void SetAlbumArt(ImageView icon, Track track, boolean useSmallestArt) {
