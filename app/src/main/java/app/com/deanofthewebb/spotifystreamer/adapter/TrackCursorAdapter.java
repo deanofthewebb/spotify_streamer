@@ -50,13 +50,13 @@ public class TrackCursorAdapter extends CursorAdapter {
 
         viewHolder.trackName.setText(cursor.getString(ArtistTracksFragment.COL_TRACK_NAME));
         viewHolder.trackAlbumName.setText(cursor.getString(ArtistTracksFragment.COL_TRACK_ALBUM_NAME));
-        SetAlbumArt(viewHolder.icon, cursor.getString(ArtistTracksFragment.COL_TRACK_IMAGE_URL), context);
+        SetAlbumArt(viewHolder.icon, cursor.getString(ArtistTracksFragment.COL_TRACK_IMAGE_URL), true);
     }
 
-    private static void SetAlbumArt(ImageView icon, String trackUrl, Context context) {
+    private static void SetAlbumArt(ImageView icon, String trackUrl, Boolean useSmallestArt) {
 
         if (!"".equals(trackUrl)) {
-            Utility.SafelyLoadImageFromPicasso(icon, trackUrl, context);
+            Utility.SafelyLoadImageFromPicasso(icon, trackUrl, useSmallestArt);
         }
         else{
             Log.d(LOG_TAG, "No Images found, using default..");

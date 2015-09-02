@@ -43,6 +43,8 @@ public class SpotifyStreamerContract {
 
         public static final String TABLE_NAME = "artist";
 
+        public static final String FULLY_QUALIFIED_ID = TABLE_NAME + "." + _ID;
+
         public static final String COLUMN_NAME = "name";
 
         public static final String COLUMN_API_ID = "api_id";
@@ -80,6 +82,8 @@ public class SpotifyStreamerContract {
                 ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_TRACK;
 
         public static final String TABLE_NAME = "track";
+
+        public static final String FULLY_QUALIFIED_ID = TABLE_NAME + "." + _ID;
 
         public static final String COLUMN_NAME = "name";
 

@@ -10,10 +10,12 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
+import app.com.deanofthewebb.spotifystreamer.Utility;
+import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
-import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
@@ -27,12 +29,17 @@ public class PlaybackService extends IntentService {
     public static final String ACTION_PAUSE = "action.PAUSE";
     public static final String ACTION_DESTROY = "action.DESTROY";
     public static final String ACTION_CREATE = "action.CREATE";
+    public static final String ACTION_STOP = "action.STOP";
+    public static final String ACTION_SKIP_BACK = "action.SKIP_BACK";
+    public static final String ACTION_SKIP_FORWARD = "action.SKIP_FORWARD";
 
     public MediaPlayer mMediaPlayer;
     private IBinder mBinder;
     private SpotifyService mSpotifyService;
     private Track mTrack;
+    private String mTrackRowId;
     private int mCurrentPosition = 0;
+    Timer mTimer;
 
 
     public class LocalBinder extends Binder {
@@ -58,13 +65,19 @@ public class PlaybackService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
+            mTrackRowId = intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
             initializeSpotifyApi();
-            initializeTrack(intent);
-            updateState(intent.getAction(), intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
+
+            try { mTrack = Utility.buildTrackFromContentProvider(getApplicationContext(), mTrackRowId);}
+            catch (Exception e) { Log.e(LOG_TAG, Log.getStackTraceString(e));}
+            Log.v(LOG_TAG, "mTrack DATA. ID: " + mTrack.id);
         }
+        updateState(intent.getAction(), mTrack.id);
     }
 
+
     public void updateState(String ACTION, String trackId) {
+        //TODO: Restart track and duration once song finishes
         switch (ACTION) {
             case ACTION_CREATE:
                 if (mMediaPlayer == null) initMediaPlayer();
@@ -78,6 +91,14 @@ public class PlaybackService extends IntentService {
                 mMediaPlayer.start();
                 break;
 
+            case ACTION_SKIP_BACK:
+                //TODO: If PLaying, skip back to beginning
+                //TODO: If less than 5 seconds when intent fired, skip to previous track
+                break;
+
+            case ACTION_SKIP_FORWARD:
+                break;
+
             case ACTION_PAUSE:
                 if (mMediaPlayer != null) {
                     mMediaPlayer.pause();
@@ -85,10 +106,19 @@ public class PlaybackService extends IntentService {
                 }
                 break;
 
-            case ACTION_DESTROY:
+            case ACTION_STOP:
                 if (mMediaPlayer != null) {
                     mMediaPlayer.stop();
+                }
+                break;
+
+            case ACTION_DESTROY:
+                if (mMediaPlayer != null) {
+                    try {
+                        mMediaPlayer.stop();
+                    } catch (IllegalStateException ise) {Log.v(LOG_TAG, "Illegal State Exception has occurred, ignoring for now.");}
                     mMediaPlayer.release();
+                    if (mTimer != null) mTimer.cancel();
                 }
                 break;
         }
@@ -97,18 +127,32 @@ public class PlaybackService extends IntentService {
     public void updateTrackProgress (int progress) {
         if (mMediaPlayer != null) {
             mMediaPlayer.seekTo(progress);
-            mMediaPlayer.start();
         }
     }
 
 
-    private void sendDataToReceivers() {
-        Intent intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
-        intent.putExtra(PlaybackFragment.TRACK_DATA, new ParceableTrack(mTrack.name, mTrack.album.name,
-                mTrack.album.images.get(0), mTrack.artists.get(0)));
+    private void sendDataToReceivers(boolean timer) {
+        Intent intent;
+        if (timer) {
+            intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
+            intent.putExtra(PlaybackFragment.TRACK_POSITION, Integer.toString(mMediaPlayer.getCurrentPosition()));
+        } else {
+            intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
+            intent.putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,mTrackRowId);
+        }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+    public void startTimerTask() {
+        if (null == mTimer) mTimer = new Timer();
+        mTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
+                    sendDataToReceivers(true);
+                }
+            }
+        }, 1000, 1000);}
 
     private void initializeSpotifyApi() {
         if (mSpotifyService == null) {
@@ -116,19 +160,6 @@ public class PlaybackService extends IntentService {
             mSpotifyService = api.getService();
         }
     }
-
-
-    private void initializeTrack(Intent intent) {
-        if (mTrack == null || trackChanged(intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA))) {
-            try {
-                    mTrack = mSpotifyService.
-                            getTrack(intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
-            }
-            catch (RetrofitError re) { LogError("A retrofit error has occured", re); }
-            catch (Exception ex) { LogError("An unexpected error has occured", ex); }
-        }
-    }
-
 
     private boolean trackChanged(String trackId) {
         return !mTrack.id.equals(trackId);
@@ -155,13 +186,14 @@ public class PlaybackService extends IntentService {
             mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
-                    sendDataToReceivers();
+                    sendDataToReceivers(false);
+                    startTimerTask();
                 }
             });
             mMediaPlayer.prepare();
         }
         catch (IOException ioe) { LogError("An IOException has occured", ioe); }
-        catch (IllegalStateException ise) { LogError("An IllegalStateException has occured", ise); }
+        catch (IllegalStateException ise) { LogError("An IllegalStateException has occurred", ise); }
     }
 
 

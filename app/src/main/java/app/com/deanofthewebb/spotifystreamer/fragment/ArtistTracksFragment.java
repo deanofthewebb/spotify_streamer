@@ -140,7 +140,6 @@ public class ArtistTracksFragment extends Fragment
         if (artistDetailIntent != null && artistDetailIntent.hasExtra(SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID)) {
             mArtistApiId = artistDetailIntent.getStringExtra(SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID);
             mArtistRowId = artistDetailIntent.getStringExtra(SpotifyStreamerContract.ArtistEntry._ID);
-            Log.d(LOG_TAG, "MARTISTAPIID: " + mArtistApiId + "MARTISTROWID: " + mArtistRowId);
             mArtistName = artistDetailIntent.getStringExtra(SpotifyStreamerContract.ArtistEntry.COLUMN_NAME);
             ((DetailActivity)getActivity()).setActionBarSubTitle(mArtistName);
             UpdateTopTracks();
@@ -151,7 +150,8 @@ public class ArtistTracksFragment extends Fragment
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 Intent playbackIntent = new Intent(getActivity(), PlaybackActivity.class)
-                        .putExtras(getTrackBundle(cursor));
+                        .putExtras(getTrackBundle(cursor))
+                        .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, cursor.getString(ArtistTracksFragment.COL_TRACK_ID));
 
                 startActivity(playbackIntent);
             }
@@ -165,6 +165,8 @@ public class ArtistTracksFragment extends Fragment
         Bundle trackBundle = new Bundle();
         trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID,
                 cursor.getString(ArtistTracksFragment.COL_TRACK_API_ID));
+        trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_MARKETS,
+                cursor.getString(ArtistTracksFragment.COL_TRACK_MARKETS));
         trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_NAME,
                 cursor.getString(ArtistTracksFragment.COL_TRACK_NAME));
         trackBundle.putString(SpotifyStreamerContract.TrackEntry.COLUMN_ALBUM_NAME,
@@ -242,7 +244,6 @@ public class ArtistTracksFragment extends Fragment
                         Map<String, Object> options = new HashMap<String, Object>() {};
                         options.put(SpotifyService.COUNTRY, countryCode);
 
-                        Log.d(LOG_TAG, "CHECKING FROM BACKGROUND THREAD: MARTISTAPIID: " + mArtistApiId + "MARTISTROWID: " + mArtistRowId);
                         results = getTrackDataFromSpotifyWrapper(spotify, params[0]);
                     }
 
@@ -308,26 +309,35 @@ public class ArtistTracksFragment extends Fragment
                         new String[]{track.id},
                         null);
 
+                String trackImageUrl = "";
+                if (!track.album.images.isEmpty()) {
+                    Image albumImage = (track.album.images.get(0));
+                    trackImageUrl = albumImage.url;
+                }
+
+                ContentValues trackValues = new ContentValues();
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_NAME, track.name);
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID, track.id);
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_API_URI, track.uri);
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_PREVIEW_URL, track.preview_url);
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_POPULARITY, track.popularity);
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_MARKETS, TextUtils.join(",", track.available_markets));
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_IMAGE_URL, trackImageUrl);
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_ALBUM_NAME, track.album.name);
+                trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_ARTIST_KEY, mArtistRowId);
+
                 if (!trackCursor.moveToFirst()) {
-
-                    String trackImageUrl = "";
-                    if (!track.album.images.isEmpty()) {
-                        Image albumImage = (track.album.images.get(track.album.images.size() - 1));
-                        trackImageUrl = albumImage.url;
-                    }
-
-                    ContentValues trackValues = new ContentValues();
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_NAME, track.name);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID, track.id);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_API_URI, track.uri);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_PREVIEW_URL, track.preview_url);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_POPULARITY, track.popularity);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_MARKETS, TextUtils.join(",", track.available_markets));
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_IMAGE_URL, trackImageUrl);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_ALBUM_NAME, track.album.name);
-                    trackValues.put(SpotifyStreamerContract.TrackEntry.COLUMN_ARTIST_KEY, mArtistRowId);
-
                     cVVector.add(trackValues);
+                } else {
+                    // Update Data
+                    int rowsUpdate = getActivity().getContentResolver().update(
+                            SpotifyStreamerContract.TrackEntry.CONTENT_URI,
+                            trackValues,
+                            SpotifyStreamerContract.TrackEntry.COLUMN_API_ID + " = ?",
+                            new String[]{track.id}
+                    );
+                    Log.v(LOG_TAG, "Inserted Row: " + rowsUpdate);
+                    if (rowsUpdate < 1)  throw new android.database.SQLException("Failed to update row: " + rowsUpdate);
                 }
                 trackCursor.close();
             }

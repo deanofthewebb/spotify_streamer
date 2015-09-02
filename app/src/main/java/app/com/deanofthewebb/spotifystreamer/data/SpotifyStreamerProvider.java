@@ -2,6 +2,7 @@ package app.com.deanofthewebb.spotifystreamer.data;
 
 import android.annotation.TargetApi;
 import android.content.ContentProvider;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
@@ -63,6 +64,9 @@ public class SpotifyStreamerProvider extends ContentProvider {
             SpotifyStreamerContract.ArtistEntry.TABLE_NAME+
                     "." + SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID + " = ? ";
 
+    //track._id = ?
+    private static final String sTrackId = SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID + " = ? ";
+
     static UriMatcher buildUriMatcher() {
         final  UriMatcher uRIMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         final String authority = SpotifyStreamerContract.CONTENT_AUTHORITY;
@@ -92,6 +96,24 @@ public class SpotifyStreamerProvider extends ContentProvider {
                 null,
                 null,
                 sortOrder
+        );
+    }
+
+    public Cursor getTrackById(Uri uri) {
+        long trackRowId = ContentUris.parseId(uri);
+        String[] selectionArgs;
+        String selection;
+
+        selection = sTrackId;
+        selectionArgs = new String[]{Long.toString(trackRowId)};
+
+        return sTrackByArtistQueryBuilder.query(mOpenHelper.getReadableDatabase(),
+                null,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null
         );
     }
 
@@ -299,7 +321,7 @@ public class SpotifyStreamerProvider extends ContentProvider {
                 int artistReturnCount = 0;
                 try {
                     for (ContentValues value : values) {
-                        long _id = db.insert(SpotifyStreamerContract.TrackEntry.TABLE_NAME, null, value);
+                        long _id = db.insert(SpotifyStreamerContract.ArtistEntry.TABLE_NAME, null, value);
                         if (_id != -1) {
                             artistReturnCount++;
                         }

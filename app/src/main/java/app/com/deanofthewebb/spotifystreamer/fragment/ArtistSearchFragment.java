@@ -65,11 +65,11 @@ public class ArtistSearchFragment extends Fragment
             // using the artist set by the user, which is only in the Artist table.
             // So the convenience is worth it.
             ArtistEntry.TABLE_NAME + "." + ArtistEntry._ID,
-            ArtistEntry.COLUMN_NAME,
-            ArtistEntry.COLUMN_API_ID,
-            ArtistEntry.COLUMN_API_URI,
-            ArtistEntry.COLUMN_POPULARITY,
-            ArtistEntry.COLUMN_IMAGE_URL
+            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_NAME,
+            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_API_ID,
+            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_API_URI,
+            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_POPULARITY,
+            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_IMAGE_URL
     };
 
     // These indices are tied to ARTIST_COLUMNS.  If ARTIST_COLUMNS changes, these

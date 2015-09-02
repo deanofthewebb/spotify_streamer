@@ -61,7 +61,7 @@ public class ArtistCursorAdapter extends CursorAdapter {
     }
 
     private void SetImageView(ImageView icon, String imageUrl, Context context) {
-        if (!imageUrl.isEmpty()) Utility.SafelyLoadImageFromPicasso(icon, imageUrl, context);
+        if (!imageUrl.isEmpty()) Utility.SafelyLoadImageFromPicasso(icon, imageUrl, true);
         else icon.setImageResource(R.mipmap.spotify_streamer_launcher);
     }
 
