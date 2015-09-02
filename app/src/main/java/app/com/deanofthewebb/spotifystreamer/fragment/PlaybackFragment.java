@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -18,10 +19,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import app.com.deanofthewebb.spotifystreamer.R;
@@ -29,13 +32,17 @@ import app.com.deanofthewebb.spotifystreamer.Utility;
 import app.com.deanofthewebb.spotifystreamer.model.ParceableTrack;
 import app.com.deanofthewebb.spotifystreamer.service.PlaybackService;
 import kaaes.spotify.webapi.android.models.ArtistSimple;
+import kaaes.spotify.webapi.android.models.Track;
 
-public class PlaybackFragment extends Fragment implements Runnable {
+public class PlaybackFragment extends Fragment {
     private final String LOG_TAG = PlaybackFragment.class.getSimpleName();
     PlaybackService mService;
     boolean mBound = false;
     public static final String RECEIVER_INTENT_FILTER = "my-event";
     public static final String TRACK_DATA = "track_data";
+    public static final String POSITION_DATA = "position_data";
+    private ViewHolder mViewHolder;
+    private ArrayList<Parcelable> mTrackList;
 
     public static class ViewHolder {
 
@@ -47,6 +54,8 @@ public class PlaybackFragment extends Fragment implements Runnable {
         public final TextView startTime;
         public final TextView endTime;
         public final SeekBar seekBar;
+        public final ImageButton previousTrackButton;
+        public final ImageButton nextTrackButton;
 
 
         public ViewHolder(View view) {
@@ -57,6 +66,8 @@ public class PlaybackFragment extends Fragment implements Runnable {
             startTime = (TextView) view.findViewById(R.id.playback_track_start);
             endTime = (TextView) view.findViewById(R.id.playback_track_end);
             playPauseButton = (ImageButton) view.findViewById(R.id.play_pause_playback_button);
+            previousTrackButton = (ImageButton) view.findViewById(R.id.previous_playback_button);
+            nextTrackButton = (ImageButton) view.findViewById(R.id.next_playback_button);
             seekBar = (SeekBar) view.findViewById(R.id.playback_seek_bar);
         }
     }
@@ -64,29 +75,19 @@ public class PlaybackFragment extends Fragment implements Runnable {
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            ParceableTrack track = intent.getParcelableExtra(TRACK_DATA);
-            setChildViews(track);
+
+            if (intent.hasExtra(TRACK_DATA)) {
+                ParceableTrack track = intent.getParcelableExtra(TRACK_DATA);
+                setChildViews(track);
+            }
+            else if (intent.hasExtra(POSITION_DATA)) {
+                int currentPosition = Integer.parseInt(intent.getStringExtra(POSITION_DATA));
+                mViewHolder.seekBar.setProgress(currentPosition);
+                mViewHolder.startTime.setText(formatDuration(currentPosition));
+            }
         }
     };
 
-    @Override
-    public void run() {
-        int currentPosition= 0;
-        int total = mService.mMediaPlayer.getDuration();
-        while (mService.mMediaPlayer !=null && currentPosition < total) {
-            try {
-                Thread.sleep(1000);
-                currentPosition= mService.mMediaPlayer.getCurrentPosition();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, e.getMessage());
-                Log.e(LOG_TAG, Log.getStackTraceString(e));
-                return;
-            }
-
-            final ViewHolder viewHolder = new ViewHolder(getView());
-            viewHolder.seekBar.setProgress(currentPosition);
-        }
-    }
 
     public PlaybackFragment() {
         setHasOptionsMenu(true);
@@ -96,18 +97,31 @@ public class PlaybackFragment extends Fragment implements Runnable {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Intent serviceIntent = getServiceIntent(PlaybackService.ACTION_CREATE);
+        Intent serviceIntent;
+
+        if (savedInstanceState == null) {
+            serviceIntent = getServiceIntent(PlaybackService.ACTION_CREATE);
+        }
+        else {
+            mTrackList = savedInstanceState.getParcelableArrayList(ArtistTracksFragment.TRACK_LIST_EXTRA);
+            String trackId = savedInstanceState.getString(ArtistTracksFragment.TRACK_ID_EXTRA);
+
+            serviceIntent = new Intent(getActivity(), PlaybackService.class);
+            serviceIntent.setAction(PlaybackService.ACTION_CREATE);
+            serviceIntent.putExtra(ArtistTracksFragment.TRACK_ID_EXTRA, trackId);
+            getActivity().startService(serviceIntent);
+        }
+
         getActivity().bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
                 new IntentFilter(RECEIVER_INTENT_FILTER));
-
-        this.setRetainInstance(true);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_playback, container, false);
+        mViewHolder = new ViewHolder(rootView);
         return rootView;
     }
 
@@ -116,6 +130,13 @@ public class PlaybackFragment extends Fragment implements Runnable {
         // Unregister since the activity is not visible
         LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mTrackDataReceiver);
         super.onPause();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelableArrayList(ArtistTracksFragment.TRACK_LIST_EXTRA, mTrackList);
+        outState.putString(ArtistTracksFragment.TRACK_ID_EXTRA, getActivity().getIntent().getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
     }
 
 
@@ -127,10 +148,9 @@ public class PlaybackFragment extends Fragment implements Runnable {
             mService.updateState(PlaybackService.ACTION_DESTROY, null);
             getActivity().unbindService(mConnection);
             mBound = false;
-            Log.d(LOG_TAG, "Exiting Activity: unBinding from Service: " + mService.toString());
+            Log.v(LOG_TAG, "Exiting Activity: unBinding from Service: " + mService.toString());
         }
     }
-
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
@@ -148,71 +168,124 @@ public class PlaybackFragment extends Fragment implements Runnable {
         }
     };
 
+    public String getPreviousTrackId(Track track) {
+        String previousTrackId = "";
+        List<String> trackIds = new ArrayList<>();
+
+        for (int i = 0 ; i < mTrackList.size() ; i++) {
+            ParceableTrack parcelableTrack = (ParceableTrack) mTrackList.get(i);
+            trackIds.add(parcelableTrack.id);
+        }
+
+        if (trackIds.indexOf(track.id) == 0) {
+            previousTrackId =  trackIds.get(trackIds.size() - 1);
+        } else {
+            previousTrackId = trackIds.get( trackIds.indexOf(track.id) - 1);
+        }
+
+        return previousTrackId;
+    }
+
 
     public void setChildViews(final ParceableTrack track) {
         if (track != null) {
-            final ViewHolder viewHolder = new ViewHolder(getView());
-            viewHolder.trackAlbumName.setText(track.album.name);
-            viewHolder.trackName.setText(track.name);
-            Utility.SetAlbumArt(viewHolder.trackAlbumArt, track, false);
+
+
+
+            mViewHolder.trackAlbumName.setText(track.album.name);
+            mViewHolder.trackName.setText(track.name);
+            Utility.SetAlbumArt(mViewHolder.trackAlbumArt, track, false);
 
             ArrayList<String> artists = new ArrayList<>();
             for (ArtistSimple artist : track.artists) { artists.add(artist.name); }
             String artistNames = TextUtils.join(",", artists);
 
-            viewHolder.artistName.setText(artistNames);
-            viewHolder.startTime.setText("0:00");
-            viewHolder.playPauseButton.setOnClickListener(new View.OnClickListener() {
+            mViewHolder.artistName.setText(artistNames);
+            mViewHolder.startTime.setText("0:00");
+            mViewHolder.playPauseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (mService.mMediaPlayer.isPlaying()) {
-                        viewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_play);
+                        mViewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_play);
                         mService.updateState(PlaybackService.ACTION_PAUSE, null);
                     } else {
-                        viewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
+                        mViewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
                         mService.updateState(PlaybackService.ACTION_PLAY, track.id);
                     }
                 }
             });
 
 
-            viewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            mViewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (progress > 0) {
-                        mService.updateTrackProgress(progress);
-                    }
+
+                    if (fromUser) mService.updateTrackProgress(progress);
+
                 }
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) { }
 
                 @Override
-                public void onStopTrackingTouch(SeekBar seekBar) { }
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                }
             });
 
             int duration = mService.mMediaPlayer.getDuration();
-            updateDuration(duration, viewHolder);
+            String formattedDuration = formatDuration(duration);
+            mViewHolder.endTime.setText(formattedDuration);
+            mViewHolder.seekBar.setProgress(0);
+            mViewHolder.seekBar.setVisibility(ProgressBar.VISIBLE);
+            mViewHolder.seekBar.setMax(duration);
+
+
+            mViewHolder.previousTrackButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mService.mMediaPlayer.isPlaying()) {
+                        mService.updateState(PlaybackService.ACTION_STOP, null);
+                    }
+                    String previousTrackId = getPreviousTrackId(track);
+
+                    Bundle bundle = new Bundle();
+                    bundle.putParcelableArrayList(ArtistTracksFragment.TRACK_LIST_EXTRA, mTrackList);
+
+                            ((Callback) getActivity())
+                            .onNewTrackSelected(previousTrackId, bundle);
+                }
+            });
+
         } else { Log.v(LOG_TAG, "No Track Found!"); }
     }
 
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * PlaybackFragmentCallback for when previous or next button has been selected.
+         */
+        public void onNewTrackSelected(String trackId, Bundle bundle);
+    }
 
-    private void updateDuration(int duration, ViewHolder viewHolder){
-        String formattedDuration = String.format("%d:%2d",
+
+    private String formatDuration(int duration){
+        return String.format("%d:%2d",
                 TimeUnit.MILLISECONDS.toMinutes(duration),
                 TimeUnit.MILLISECONDS.toSeconds(duration) -
                         TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
         );
-
-        viewHolder.endTime.setText(formattedDuration);
-        viewHolder.seekBar.setProgress(0);
-        viewHolder.seekBar.setMax(duration);
     }
 
     private Intent getServiceIntent(String ACTION) {
         Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
         serviceIntent.setAction(ACTION);
         serviceIntent.putExtra(ArtistTracksFragment.TRACK_ID_EXTRA,
-                getActivity().getIntent().getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
+                getActivity().getIntent().getAction());
         getActivity().startService(serviceIntent);
         return serviceIntent;
     }

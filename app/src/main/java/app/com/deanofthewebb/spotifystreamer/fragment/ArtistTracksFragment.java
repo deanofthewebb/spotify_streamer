@@ -39,16 +39,17 @@ public class ArtistTracksFragment extends Fragment {
     private final String LOG_TAG = ArtistTracksFragment.class.getSimpleName();
     private final String PARCEL_TRACKS = "parcel_tracks";
     private TrackAdapter trackResultsAdapter;
-    private ArrayList<ParceableTrack> tracksFound;
+    private ArrayList<ParceableTrack> mTracksFound;
     private String artistId;
     private String artistName;
 
 
     public static final String TRACK_ID_EXTRA = "t_n_e";
+    public static final String TRACK_LIST_EXTRA = "t_l_e";
 
     public ArtistTracksFragment() {
         setHasOptionsMenu(true);
-        tracksFound = new ArrayList<>();
+        mTracksFound = new ArrayList<>();
     }
 
     @Override
@@ -58,10 +59,10 @@ public class ArtistTracksFragment extends Fragment {
         Intent artistDetailIntent = getActivity().getIntent();
 
         if (savedInstanceState != null) {
-            tracksFound = savedInstanceState.getParcelableArrayList(PARCEL_TRACKS);
+            mTracksFound = savedInstanceState.getParcelableArrayList(PARCEL_TRACKS);
 
             List<Track> trackList = new ArrayList<Track>();
-            for (ParceableTrack parceableTrack : tracksFound) {
+            for (ParceableTrack parceableTrack : mTracksFound) {
                 trackList.add(parceableTrack);
             }
 
@@ -80,25 +81,25 @@ public class ArtistTracksFragment extends Fragment {
 
             ((DetailActivity)getActivity()).setActionBarSubTitle(artistName);
             UpdateTopTracks(artistId);
-        }
-        else {
-            Log.e(LOG_TAG, "Intent passed is null!");
-        }
+        } else { Log.e(LOG_TAG, "Intent passed is null!"); }
 
         trackResultsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Track track = trackResultsAdapter.getItem(position);
-
-
-                Intent playbackIntent = new Intent(getActivity(), PlaybackActivity.class)
-                        .putExtra(TRACK_ID_EXTRA, track.id);
+                Intent playbackIntent = getPlaybackIntent(track.id);
 
                 startActivity(playbackIntent);
             }
         });
 
         return rootView;
+    }
+
+    private Intent getPlaybackIntent(String trackId) {
+        return new Intent(getActivity(), PlaybackActivity.class)
+                            .putExtra(TRACK_ID_EXTRA, trackId)
+                            .putExtra(TRACK_LIST_EXTRA, mTracksFound);
     }
 
 
@@ -110,7 +111,7 @@ public class ArtistTracksFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
-        savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, tracksFound);
+        savedInstanceState.putParcelableArrayList(PARCEL_TRACKS, mTracksFound);
     }
 
     @Override
@@ -153,7 +154,7 @@ public class ArtistTracksFragment extends Fragment {
                 return null;
             }
             catch (Exception ex) {
-                Log.d(LOG_TAG, "An error has occured: " + ex.getMessage());
+                Log.d(LOG_TAG, "An unexpected error has occured: " + ex.getMessage());
                 return null;
             }
         }
@@ -178,7 +179,7 @@ public class ArtistTracksFragment extends Fragment {
         }
 
         private void CreateParceableTracks(Tracks results) {
-            tracksFound.clear();
+            mTracksFound.clear();
 
             for(Track track : results.tracks) {
                 Artist artist = new Artist();
@@ -186,12 +187,14 @@ public class ArtistTracksFragment extends Fragment {
 
                 if (!track.album.images.isEmpty()) {
                     Image artistImage = track.album.images.get(0);
-                    tracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage, artist));
+                    mTracksFound.add(new ParceableTrack(track.name, track.album.name, artistImage, artist));
                 }
                 else{
-                    tracksFound.add(new ParceableTrack(track.name, track.album.name, null, artist));
+                    mTracksFound.add(new ParceableTrack(track.name, track.album.name, new Image(), artist));
                 }
             }
+
+            Log.d(LOG_TAG, "TRACKS FOUND: " + mTracksFound.size());
         }
 
         private void ShowNoTracksFoundToast() {

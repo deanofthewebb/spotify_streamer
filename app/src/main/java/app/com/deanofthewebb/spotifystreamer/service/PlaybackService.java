@@ -10,6 +10,8 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
@@ -27,12 +29,14 @@ public class PlaybackService extends IntentService {
     public static final String ACTION_PAUSE = "action.PAUSE";
     public static final String ACTION_DESTROY = "action.DESTROY";
     public static final String ACTION_CREATE = "action.CREATE";
+    public static final String ACTION_STOP = "action.STOP";
 
     public MediaPlayer mMediaPlayer;
     private IBinder mBinder;
     private SpotifyService mSpotifyService;
     private Track mTrack;
     private int mCurrentPosition = 0;
+    Timer mTimer;
 
 
     public class LocalBinder extends Binder {
@@ -85,10 +89,19 @@ public class PlaybackService extends IntentService {
                 }
                 break;
 
-            case ACTION_DESTROY:
+            case ACTION_STOP:
                 if (mMediaPlayer != null) {
                     mMediaPlayer.stop();
+                }
+                break;
+
+            case ACTION_DESTROY:
+                if (mMediaPlayer != null) {
+                    try {
+                        mMediaPlayer.stop();
+                    } catch (IllegalStateException ise) {}
                     mMediaPlayer.release();
+                    if (mTimer != null) mTimer.cancel();
                 }
                 break;
         }
@@ -97,18 +110,31 @@ public class PlaybackService extends IntentService {
     public void updateTrackProgress (int progress) {
         if (mMediaPlayer != null) {
             mMediaPlayer.seekTo(progress);
-            mMediaPlayer.start();
         }
     }
 
 
-    private void sendDataToReceivers() {
-        Intent intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
-        intent.putExtra(PlaybackFragment.TRACK_DATA, new ParceableTrack(mTrack.name, mTrack.album.name,
-                mTrack.album.images.get(0), mTrack.artists.get(0)));
+    private void sendDataToReceivers(boolean timer) {
+        Intent intent;
+        if (timer) {
+            intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
+            intent.putExtra(PlaybackFragment.POSITION_DATA, Integer.toString(mMediaPlayer.getCurrentPosition()));
+        } else {
+            intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
+            intent.putExtra(PlaybackFragment.TRACK_DATA, new ParceableTrack(mTrack.name, mTrack.album.name,
+                    mTrack.album.images.get(0), mTrack.artists.get(0)));
+        }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+    public void startTimerTask() {
+        if (null == mTimer) mTimer = new Timer();
+        mTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if ( mMediaPlayer != null && mMediaPlayer.isPlaying()) { sendDataToReceivers(true); }
+            }
+        }, 1000, 1000);}
 
     private void initializeSpotifyApi() {
         if (mSpotifyService == null) {
@@ -121,6 +147,9 @@ public class PlaybackService extends IntentService {
     private void initializeTrack(Intent intent) {
         if (mTrack == null || trackChanged(intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA))) {
             try {
+                    Log.v(LOG_TAG, "TRACK ID: " + intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
+                    Log.v(LOG_TAG, "MAYBE TRACK ID: " + intent.getAction());
+
                     mTrack = mSpotifyService.
                             getTrack(intent.getStringExtra(ArtistTracksFragment.TRACK_ID_EXTRA));
             }
@@ -155,7 +184,8 @@ public class PlaybackService extends IntentService {
             mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
-                    sendDataToReceivers();
+                    sendDataToReceivers(false);
+                    startTimerTask();
                 }
             });
             mMediaPlayer.prepare();
