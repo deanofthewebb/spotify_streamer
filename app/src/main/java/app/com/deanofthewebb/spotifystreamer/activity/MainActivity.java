@@ -1,5 +1,7 @@
 package app.com.deanofthewebb.spotifystreamer.activity;
 
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
@@ -8,14 +10,18 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import app.com.deanofthewebb.spotifystreamer.R;
+import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
+import app.com.deanofthewebb.spotifystreamer.fragment.ArtistSearchFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
+import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 
 
-public class MainActivity extends ActionBarActivity implements ArtistTracksFragment.Callback {
+public class MainActivity extends ActionBarActivity implements ArtistSearchFragment.Callback, ArtistTracksFragment.Callback {
     private final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String DETAILFRAGMENT_TAG = "DFTAG";
 
     private boolean mTwoPane;
+    private boolean mIsLargeLayout = false;
 
 
     @Override
@@ -25,13 +31,16 @@ public class MainActivity extends ActionBarActivity implements ArtistTracksFragm
         if (findViewById(R.id.track_detail_container) != null) {
             mTwoPane = true;
             if (savedInstanceState == null) {
-                getSupportFragmentManager().beginTransaction()
+                getFragmentManager().beginTransaction()
                         .replace(R.id.track_detail_container, new ArtistTracksFragment(), DETAILFRAGMENT_TAG)
                         .commit();
             }
         } else {
             mTwoPane = false;
         }
+
+        mIsLargeLayout = getResources().getBoolean(R.bool.large_layout);
+
     }
 
 
@@ -66,7 +75,7 @@ public class MainActivity extends ActionBarActivity implements ArtistTracksFragm
             ArtistTracksFragment fragment = new ArtistTracksFragment();
             fragment.setArguments(args);
 
-            getSupportFragmentManager().beginTransaction()
+            getFragmentManager().beginTransaction()
                     .replace(R.id.track_detail_container, fragment, DETAILFRAGMENT_TAG)
                     .commit();
         } else {
@@ -74,5 +83,33 @@ public class MainActivity extends ActionBarActivity implements ArtistTracksFragm
                     .setData(artistUri);
             startActivity(intent);
         }
+    }
+
+    public void showDialog(String trackRowId) {
+        FragmentManager fragmentManager = getFragmentManager();
+        PlaybackFragment fragment = new PlaybackFragment();
+
+        Bundle args = new Bundle();
+        args.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, trackRowId);
+        fragment.setArguments(args);
+
+        if (mIsLargeLayout) {
+            // The device is using a large layout, so show the fragment as a dialog
+            fragment.show(fragmentManager, "dialog");
+        } else {
+            // The device is smaller, so show the fragment fullscreen
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            // For a little polish, specify a transition animation
+            transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+            // To make it fullscreen, use the 'content' root view as the container
+            // for the fragment, which is always the root view for the activity
+            transaction.add(R.id.playback_activity_container, fragment)
+                    .addToBackStack(null).commit();
+        }
+    }
+
+    @Override
+    public void onItemSelected(String TrackRowId) {
+        showDialog(TrackRowId);
     }
 }

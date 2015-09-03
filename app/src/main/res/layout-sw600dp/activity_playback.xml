@@ -1,0 +1,7 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:name="app.com.deanofthewebb.spotifystreamer.activity.PlaybackActivity"
+    android:id="@+id/playback_activity_container"
+    tools:layout="@layout/fragment_playback"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />

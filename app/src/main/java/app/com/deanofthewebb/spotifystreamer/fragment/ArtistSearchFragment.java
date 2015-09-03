@@ -3,7 +3,6 @@ package app.com.deanofthewebb.spotifystreamer.fragment;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -29,7 +28,6 @@ import java.net.MalformedURLException;
 import app.com.deanofthewebb.spotifystreamer.adapter.ArtistCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
@@ -77,6 +75,20 @@ public class ArtistSearchFragment extends Fragment
 
     public ArtistSearchFragment() { }
 
+
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * ArtistSearchFragmentCallback for when an item has been selected.
+         */
+        void onItemSelected(Uri trackUri);
+    }
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,7 +114,7 @@ public class ArtistSearchFragment extends Fragment
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
 
                 if (cursor != null) {
-                    ((ArtistTracksFragment.Callback) getActivity())
+                    ((ArtistSearchFragment.Callback) getActivity())
                             .onItemSelected(SpotifyStreamerContract.TrackEntry.buildTrackArtist(
                                     cursor.getString(COL_ARTIST_API_ID)
                             ));

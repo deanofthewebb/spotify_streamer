@@ -1,5 +1,8 @@
 package app.com.deanofthewebb.spotifystreamer.activity;
 
+import android.app.Fragment;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -8,17 +11,23 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 import app.com.deanofthewebb.spotifystreamer.R;
+import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 
 
-public class DetailActivity extends AppCompatActivity {
+public class DetailActivity extends AppCompatActivity
+                                    implements ArtistTracksFragment.Callback {
+    private boolean mIsLargeLayout = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
         if (savedInstanceState == null) {
+
+            mIsLargeLayout = getResources().getBoolean(R.bool.large_layout);
 
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
@@ -29,11 +38,38 @@ public class DetailActivity extends AppCompatActivity {
             ArtistTracksFragment fragment = new ArtistTracksFragment();
             fragment.setArguments(arguments);
 
-            getSupportFragmentManager().beginTransaction()
+            getFragmentManager().beginTransaction()
                     .add(R.id.track_detail_container, fragment)
-                    .commit();
+                            .commit();
         }
     }
+
+    public void showDialog(String trackRowId) {
+        FragmentManager fragmentManager = getFragmentManager();
+        PlaybackFragment fragment = new PlaybackFragment();
+
+
+        Bundle args = new Bundle();
+        args.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, trackRowId);
+        fragment.setArguments(args);
+
+        ArtistTracksFragment trackFragment = (ArtistTracksFragment) fragmentManager.findFragmentById(R.id.track_detail_container);
+
+        if (mIsLargeLayout) {
+            // The device is using a large layout, so show the fragment as a dialog
+            fragment.show(fragmentManager, "dialog");
+        } else {
+            //remove existing fragment
+
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+            transaction.remove(trackFragment).addToBackStack(null)
+                        .addToBackStack(null);
+            transaction.add(R.id.track_detail_container, fragment)
+                    .addToBackStack(null).commit();
+        }
+    }
+
 
 
     public void setActionBarSubTitle (String subTitle) {
@@ -61,5 +97,10 @@ public class DetailActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onItemSelected(String TrackRowId) {
+        showDialog(TrackRowId);
     }
 }

@@ -1,18 +1,16 @@
 package app.com.deanofthewebb.spotifystreamer.fragment;
 
-import android.app.Activity;
 import android.content.ContentValues;
-import android.content.Intent;
+import android.content.CursorLoader;
+import android.content.Loader;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.support.v4.app.Fragment;
+import android.app.Fragment;
 import android.os.Bundle;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
+import android.app.LoaderManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -30,11 +28,9 @@ import java.util.Map;
 import java.util.Vector;
 
 import app.com.deanofthewebb.spotifystreamer.Utility;
-import app.com.deanofthewebb.spotifystreamer.activity.PlaybackActivity;
 import app.com.deanofthewebb.spotifystreamer.adapter.TrackCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
@@ -58,18 +54,6 @@ public class ArtistTracksFragment extends Fragment
     private Uri mUri;
     private String mArtistRowId;
 
-
-    /**
-     * A callback interface that all activities containing this fragment must
-     * implement. This mechanism allows activities to be notified of item
-     * selections.
-     */
-    public interface Callback {
-        /**
-         * ArtistTracksFragmentCallback for when an item has been selected.
-         */
-        void onItemSelected(Uri trackUri);
-    }
 
     private static final int TRACK_LOADER_ID = 0;
     private static final String[] TRACK_COLUMNS = {
@@ -111,6 +95,18 @@ public class ArtistTracksFragment extends Fragment
         setHasOptionsMenu(true);
     }
 
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * ArtistSearchFragmentCallback for when an item has been selected.
+         */
+        void onItemSelected(String TrackRowId);
+    }
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
@@ -131,7 +127,6 @@ public class ArtistTracksFragment extends Fragment
                              Bundle savedInstanceState) {
         Bundle arguments = getArguments();
         if (arguments != null) {
-            Log.v(LOG_TAG, "SHOULDN'T BE IN HERE UNTIL AFTER WE CLICK BUTTON");
             mUri = arguments.getParcelable(ArtistTracksFragment.DETAIL_URI);
 
             try {
@@ -155,18 +150,13 @@ public class ArtistTracksFragment extends Fragment
         mListView = (ListView) rootView.findViewById(R.id.track_results_listview);
         mListView.setAdapter(mTrackCursorAdapter);
 
-//        Activity activity = getActivity();
-//        if (activity.ge)
-//                ((DetailActivity) getActivity()).setActionBarSubTitle(mArtist.name);
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
-                Intent playbackIntent = new Intent(getActivity(), PlaybackActivity.class)
-                        .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, cursor.getString(ArtistTracksFragment.COL_TRACK_ID));
-
-                startActivity(playbackIntent);
+                ((ArtistTracksFragment.Callback) getActivity())
+                        .onItemSelected(cursor.getString(COL_TRACK_ID));
             }
         });
 
@@ -177,11 +167,7 @@ public class ArtistTracksFragment extends Fragment
     private void UpdateTopTracks() {
         FetchTopTracksTask topTracksTask = new FetchTopTracksTask();
         topTracksTask.execute(mArtist.id);
-
-        // Initialize Loader here
-        if (!getLoaderManager().hasRunningLoaders()) {
             getLoaderManager().initLoader(TRACK_LOADER_ID, null, this);
-        }
     }
 
     @Override

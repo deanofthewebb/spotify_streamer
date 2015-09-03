@@ -8,22 +8,23 @@ import android.view.MenuItem;
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 
-public class PlaybackActivity extends AppCompatActivity{
+public class PlaybackActivity extends AppCompatActivity {
     private final String LOG_TAG = PlaybackActivity.class.getSimpleName();
     private final String PLAYBACKFRAGMENT_TAG = "PFTAG";
-    private boolean mTwoPane = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_playback);
 
+
         if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
+            getFragmentManager().beginTransaction()
                     .add(R.id.playback_activity_container, new PlaybackFragment())
                     .commit();
         }
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

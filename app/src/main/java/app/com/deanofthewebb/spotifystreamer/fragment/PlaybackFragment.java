@@ -1,5 +1,6 @@
 package app.com.deanofthewebb.spotifystreamer.fragment;
 
+import android.app.DialogFragment;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -10,7 +11,6 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -35,7 +35,7 @@ import app.com.deanofthewebb.spotifystreamer.service.PlaybackService;
 import kaaes.spotify.webapi.android.models.ArtistSimple;
 import kaaes.spotify.webapi.android.models.Track;
 
-public class PlaybackFragment extends Fragment {
+public class PlaybackFragment extends DialogFragment {
     private final String LOG_TAG = PlaybackFragment.class.getSimpleName();
     PlaybackService mPlaybackService;
     boolean mServiceBounded = false;
@@ -147,7 +147,13 @@ public class PlaybackFragment extends Fragment {
             serviceIntent = getServiceIntent();
             getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
         } else {
-            mTrackRowId = getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+            Bundle arguments = getArguments();
+            if (arguments != null) {
+                mTrackRowId = arguments.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+            } else {
+                mTrackRowId = getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+            }
+
             serviceIntent = getServiceIntent();
             getActivity().startService(serviceIntent);
         }
