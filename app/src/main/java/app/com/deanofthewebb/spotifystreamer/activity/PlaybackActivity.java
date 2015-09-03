@@ -10,7 +10,6 @@ import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 
 public class PlaybackActivity extends AppCompatActivity {
     private final String LOG_TAG = PlaybackActivity.class.getSimpleName();
-    private final String PLAYBACKFRAGMENT_TAG = "PFTAG";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

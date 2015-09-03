@@ -1,4 +1,4 @@
-package app.com.deanofthewebb.spotifystreamer;
+package app.com.deanofthewebb.spotifystreamer.helpers;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -14,6 +14,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistSearchFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
@@ -84,14 +85,14 @@ public class Utility {
 
 
         if (trackCursor.moveToNext()) {
-            Artist artist = buildArtistFromContentProviderId(context, trackCursor.getString(ArtistTracksFragment.COL_TRACK_ARTIST_KEY));
-            track.id = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
-            track.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_NAME);
-            track.uri = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_URI);
+            Artist artist = buildArtistFromContentProviderId(context, trackCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ARTIST_KEY));
+            track.id = trackCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_API_ID);
+            track.name = trackCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_NAME);
+            track.uri = trackCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_API_URI);
             track.popularity = Integer.getInteger(trackCursor.getString(6), 10);
             track.preview_url = trackCursor.getString(4);
 
-            album.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_ALBUM_NAME);
+            album.name = trackCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ALBUM_NAME);
             album.images = new ArrayList<>();
             image.url = trackCursor.getString(7);
             album.images.add(image);
@@ -132,12 +133,12 @@ public class Utility {
                 null);
 
         if (artistCursor.moveToNext()) {
-            artist.id = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_API_ID);
-            artist.name = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_NAME);
-            artist.uri = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_API_URI);
-            artist.popularity = Integer.getInteger(artistCursor.getString(ArtistSearchFragment.COL_ARTIST_POPULARITY), 0);
+            artist.id = artistCursor.getString(Constants.CONTENT_PROVIDER.COL_ARTIST_API_ID);
+            artist.name = artistCursor.getString(Constants.CONTENT_PROVIDER.COL_ARTIST_NAME);
+            artist.uri = artistCursor.getString(Constants.CONTENT_PROVIDER.COL_ARTIST_API_URI);
+            artist.popularity = Integer.getInteger(artistCursor.getString(Constants.CONTENT_PROVIDER.COL_ARTIST_POPULARITY), 0);
             Image image = new Image();
-            image.url = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_IMAGE_URL);
+            image.url = artistCursor.getString(Constants.CONTENT_PROVIDER.COL_ARTIST_IMAGE_URL);
             artist.images = new ArrayList<>();
             artist.images.add(image);
 

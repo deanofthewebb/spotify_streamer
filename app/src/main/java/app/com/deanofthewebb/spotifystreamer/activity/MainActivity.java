@@ -14,11 +14,11 @@ import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistSearchFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
+import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
 
 
 public class MainActivity extends ActionBarActivity implements ArtistSearchFragment.Callback, ArtistTracksFragment.Callback {
     private final String LOG_TAG = MainActivity.class.getSimpleName();
-    private static final String DETAILFRAGMENT_TAG = "DFTAG";
 
     private boolean mTwoPane;
     private boolean mIsLargeLayout = false;
@@ -32,7 +32,7 @@ public class MainActivity extends ActionBarActivity implements ArtistSearchFragm
             mTwoPane = true;
             if (savedInstanceState == null) {
                 getFragmentManager().beginTransaction()
-                        .replace(R.id.track_detail_container, new ArtistTracksFragment(), DETAILFRAGMENT_TAG)
+                        .replace(R.id.track_detail_container, new ArtistTracksFragment(), Constants.TAG.DETAILFRAGMENT)
                         .commit();
             }
         } else {
@@ -76,7 +76,7 @@ public class MainActivity extends ActionBarActivity implements ArtistSearchFragm
             fragment.setArguments(args);
 
             getFragmentManager().beginTransaction()
-                    .replace(R.id.track_detail_container, fragment, DETAILFRAGMENT_TAG)
+                    .replace(R.id.track_detail_container, fragment, Constants.TAG.DETAILFRAGMENT)
                     .commit();
         } else {
             Intent intent = new Intent(this, DetailActivity.class)
@@ -109,7 +109,7 @@ public class MainActivity extends ActionBarActivity implements ArtistSearchFragm
     }
 
     @Override
-    public void onItemSelected(String TrackRowId) {
+    public void onTrackSelected(String TrackRowId) {
         showDialog(TrackRowId);
     }
 }

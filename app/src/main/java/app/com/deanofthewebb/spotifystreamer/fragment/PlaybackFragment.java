@@ -17,11 +17,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
-import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -29,7 +27,8 @@ import java.util.Date;
 import java.util.Locale;
 
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.Utility;
+import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
+import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.service.PlaybackService;
 import kaaes.spotify.webapi.android.models.ArtistSimple;
@@ -40,41 +39,9 @@ public class PlaybackFragment extends DialogFragment {
     PlaybackService mPlaybackService;
     boolean mServiceBounded = false;
 
-    public static final String RECEIVER_INTENT_FILTER = "my_event";
-    public static final String TRACK_POSITION = "position_data";
-    public static final String CHANGE_TRACK = "change_track";
-
-    private ViewHolder mViewHolder;
+    private Constants.PlaybackFragmentViewHolder mViewHolder;
     private Track mTrack;
     private String mTrackRowId;
-
-    public static class ViewHolder {
-
-        public final ImageView trackAlbumArt;
-        public final TextView trackName;
-        public final TextView trackAlbumName;
-        public final TextView artistName;
-        public final ImageButton playPauseButton;
-        public final TextView startTime;
-        public final TextView endTime;
-        public final SeekBar seekBar;
-        public final ImageButton previousTrackButton;
-        public final ImageButton nextTrackButton;
-
-
-        public ViewHolder(View view) {
-            trackAlbumArt = (ImageView) view.findViewById(R.id.list_item_album_art);
-            trackName = (TextView) view.findViewById(R.id.list_item_track_name);
-            trackAlbumName = (TextView) view.findViewById(R.id.list_item_track_album);
-            artistName = (TextView) view.findViewById(R.id.list_item_artist_name);
-            startTime = (TextView) view.findViewById(R.id.playback_track_start);
-            endTime = (TextView) view.findViewById(R.id.playback_track_end);
-            playPauseButton = (ImageButton) view.findViewById(R.id.play_pause_playback_button);
-            previousTrackButton = (ImageButton) view.findViewById(R.id.previous_playback_button);
-            nextTrackButton = (ImageButton) view.findViewById(R.id.next_playback_button);
-            seekBar = (SeekBar) view.findViewById(R.id.playback_seek_bar);
-        }
-    }
 
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
@@ -85,16 +52,16 @@ public class PlaybackFragment extends DialogFragment {
                 catch (Exception e) { e.printStackTrace(); }
 
                 Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
-                serviceIntent.setAction(PlaybackService.ACTION_CREATE);
+                serviceIntent.setAction(Constants.ACTION.CREATE_ACTION);
                 getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
 
-                if (intent.hasExtra(CHANGE_TRACK) && intent.getBooleanExtra(CHANGE_TRACK, true)) {
+                if (intent.hasExtra(Constants.KEY.CHANGE_TRACK) && intent.getBooleanExtra(Constants.KEY.CHANGE_TRACK, true)) {
                     setChildViews();
                 }
             }
-            else if (intent.hasExtra(TRACK_POSITION)){
+            else if (intent.hasExtra(Constants.KEY.TRACK_POSITION)){
 
-                int currentPosition = Integer.parseInt(intent.getStringExtra(TRACK_POSITION));
+                int currentPosition = Integer.parseInt(intent.getStringExtra(Constants.KEY.CHANGE_TRACK));
                 mViewHolder.seekBar.setProgress(currentPosition);
                 mViewHolder.startTime.setText(formatDuration(currentPosition));
             }
@@ -126,7 +93,31 @@ public class PlaybackFragment extends DialogFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Intent serviceIntent;
-        if (savedInstanceState != null) {
+        Bundle arguments = getArguments();
+
+
+
+
+
+
+
+
+
+
+        if (arguments != null) {
+            mTrackRowId = arguments.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+            serviceIntent = getServiceIntent(Constants.ACTION.PLAY_ACTION);
+
+            if (mPlaybackService == null ) {
+                try {
+                    mTrack =  Utility.buildTrackFromContentProviderId(getActivity(), mTrackRowId);
+                } catch (Exception e) { e.printStackTrace(); }
+                getActivity().startService(serviceIntent);
+                getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+            }
+            else getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+        }
+        else if (savedInstanceState != null) {
             try {
                 mTrack =  Utility.buildTrackFromContentProviderApiId(getActivity(),
                         savedInstanceState.getString(SpotifyStreamerContract.TrackEntry.COLUMN_API_ID));
@@ -139,27 +130,21 @@ public class PlaybackFragment extends DialogFragment {
                         null);
 
                 trackCursor.moveToNext();
-                mTrackRowId = trackCursor.getString(ArtistTracksFragment.COL_TRACK_ID);
+                mTrackRowId = trackCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ID);
                 trackCursor.close();
 
             } catch (Exception e) { e.printStackTrace(); }
 
-            serviceIntent = getServiceIntent();
+            serviceIntent = getServiceIntent(Constants.ACTION.CREATE_ACTION);
             getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
         } else {
-            Bundle arguments = getArguments();
-            if (arguments != null) {
-                mTrackRowId = arguments.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-            } else {
                 mTrackRowId = getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-            }
-
-            serviceIntent = getServiceIntent();
-            getActivity().startService(serviceIntent);
+                serviceIntent = getServiceIntent(Constants.ACTION.CREATE_ACTION);
+                getActivity().startService(serviceIntent);
         }
 
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(RECEIVER_INTENT_FILTER));
+                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
 
         super.onCreate(savedInstanceState);
     }
@@ -170,7 +155,7 @@ public class PlaybackFragment extends DialogFragment {
                              Bundle savedInstanceState) {
 
         View rootView = inflater.inflate(R.layout.fragment_playback, container, false);
-        mViewHolder = new ViewHolder(rootView);
+        mViewHolder = new Constants.PlaybackFragmentViewHolder(rootView);
 
         return rootView;
     }
@@ -191,7 +176,7 @@ public class PlaybackFragment extends DialogFragment {
     public void onResume() {
         // Reregister since the activity is visible
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(RECEIVER_INTENT_FILTER));
+                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
         super.onResume();
     }
 
@@ -231,10 +216,10 @@ public class PlaybackFragment extends DialogFragment {
                 public void onClick(View v) {
                     if (mPlaybackService.mMediaPlayer.isPlaying()) {
                         mViewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_play);
-                        mPlaybackService.updateState(PlaybackService.ACTION_PAUSE, null);
+                        mPlaybackService.updateState(Constants.ACTION.PAUSE_ACTION, null);
                     } else {
                         mViewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
-                        mPlaybackService.updateState(PlaybackService.ACTION_PLAY, mTrack.id);
+                        mPlaybackService.updateState(Constants.ACTION.PLAY_ACTION, mTrack.id);
                     }
                 }
             });
@@ -264,7 +249,7 @@ public class PlaybackFragment extends DialogFragment {
                         String previousTrackRowId = getPreviousTrackRowId();
                         Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
                         serviceIntent
-                                .setAction(PlaybackService.ACTION_SKIP_BACK)
+                                .setAction(Constants.ACTION.PREV_ACTION)
                                 .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, previousTrackRowId);
 
                         getActivity().startService(serviceIntent);
@@ -278,7 +263,7 @@ public class PlaybackFragment extends DialogFragment {
                     String nextTrackRowId = getNextTrackRowId();
                     Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
                     serviceIntent
-                            .setAction(PlaybackService.ACTION_SKIP_FORWARD)
+                            .setAction(Constants.ACTION.NEXT_ACTION)
                             .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, nextTrackRowId);
 
                     getActivity().startService(serviceIntent);
@@ -297,10 +282,10 @@ public class PlaybackFragment extends DialogFragment {
 
 
     @NonNull
-    private Intent getServiceIntent() {
+    private Intent getServiceIntent(String Action) {
         Intent serviceIntent;
         serviceIntent = new Intent(getActivity(), PlaybackService.class);
-        serviceIntent.setAction(PlaybackService.ACTION_CREATE)
+        serviceIntent.setAction(Action)
                 .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrackRowId);
         return serviceIntent;
     }
@@ -320,7 +305,7 @@ public class PlaybackFragment extends DialogFragment {
         int position = -1;
         String trackId;
         while (tracklistCursor.moveToNext() && !foundPosition) {
-            trackId = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
+            trackId = tracklistCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_API_ID);
 
             if (trackId.equals(mTrack.id)) {
                 position = tracklistCursor.getPosition();
@@ -334,7 +319,7 @@ public class PlaybackFragment extends DialogFragment {
         //Get next id
         if (tracklistCursor.isLast()) tracklistCursor.moveToFirst();
         else tracklistCursor.moveToNext();
-        nextTrackRowID = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_ID);
+        nextTrackRowID = tracklistCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ID);
         tracklistCursor.close();
 
         // Change mTrack using previous id
@@ -362,7 +347,7 @@ public class PlaybackFragment extends DialogFragment {
         int position = -1;
         String trackId;
         while (tracklistCursor.moveToNext() && !foundPosition) {
-            trackId = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
+            trackId = tracklistCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_API_ID);
 
             if (trackId.equals(mTrack.id)) {
                 position = tracklistCursor.getPosition();
@@ -375,7 +360,7 @@ public class PlaybackFragment extends DialogFragment {
             //Get previous id
             if (tracklistCursor.isFirst()) tracklistCursor.moveToLast();
             else tracklistCursor.moveToPrevious();
-            previousTrackRowID = tracklistCursor.getString(ArtistTracksFragment.COL_TRACK_ID);
+            previousTrackRowID = tracklistCursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ID);
             tracklistCursor.close();
 
             // Change mTrack using previous id

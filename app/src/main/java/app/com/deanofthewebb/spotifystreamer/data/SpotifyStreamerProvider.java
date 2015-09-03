@@ -27,8 +27,8 @@ public class SpotifyStreamerProvider extends ContentProvider {
     static final int ARTIST = 300;
     static final int ARTIST_BY_NAME = 301;
 
-    private static final SQLiteQueryBuilder sTrackByArtistQueryBuilder;
-    private static final SQLiteQueryBuilder sArtistQueryBuilder;
+    static final SQLiteQueryBuilder sTrackByArtistQueryBuilder;
+    static final SQLiteQueryBuilder sArtistQueryBuilder;
 
 
     static{

@@ -27,7 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
-import app.com.deanofthewebb.spotifystreamer.Utility;
+import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
+import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 import app.com.deanofthewebb.spotifystreamer.adapter.TrackCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.R;
@@ -49,47 +50,9 @@ public class ArtistTracksFragment extends Fragment
     private ListView mListView;
     private int mPosition = mListView.INVALID_POSITION;
 
-    private static final String SELECTED_KEY = "selected_position";
     public static final String DETAIL_URI = "URI";
     private Uri mUri;
     private String mArtistRowId;
-
-
-    private static final int TRACK_LOADER_ID = 0;
-    private static final String[] TRACK_COLUMNS = {
-            // In this case the id needs to be fully qualified with a table name, since
-            // the content provider joins the artist & track tables in the background
-            // (both have an _id column)
-            // On the one hand, that's annoying.  On the other, you can search the track table
-            // using the artist set by the user, which is only in the Artist table.
-            // So the convenience is worth it.
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry._ID,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_NAME,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_API_ID,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_API_URI,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_POPULARITY,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_IMAGE_URL,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_PREVIEW_URL,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_MARKETS,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_ALBUM_NAME,
-            SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_ARTIST_KEY
-    };
-
-    // These indices are tied to ARTIST_COLUMNS.  If ARTIST_COLUMNS changes, these
-    // must change.
-    public static final int COL_TRACK_ID = 0;
-    public static final int COL_TRACK_NAME = 1;
-    public static final int COL_TRACK_API_ID = 2;
-    public static final int COL_TRACK_API_URI = 3;
-    public static final int COL_TRACK_POPULARITY = 4;
-    public static final int COL_TRACK_IMAGE_URL = 5;
-    public static final int COL_TRACK_PREVIEW_URL = 6;
-    public static final int COL_TRACK_MARKETS = 7;
-    public static final int COL_TRACK_ALBUM_NAME = 8;
-    public static final int COL_TRACK_ARTIST_KEY = 9;
-
-
-    public static final String TRACK_ID_EXTRA = "t_n_e";
 
     public ArtistTracksFragment() {
         setHasOptionsMenu(true);
@@ -104,7 +67,7 @@ public class ArtistTracksFragment extends Fragment
         /**
          * ArtistSearchFragmentCallback for when an item has been selected.
          */
-        void onItemSelected(String TrackRowId);
+        void onTrackSelected(String TrackRowId);
     }
 
     @Override
@@ -117,7 +80,7 @@ public class ArtistTracksFragment extends Fragment
         super.onOptionsMenuClosed(menu);
         if (mArtist != null) {
             UpdateTopTracks();
-            getLoaderManager().restartLoader(TRACK_LOADER_ID, null, (ArtistTracksFragment) getFragmentManager().findFragmentById(R.id.track_detail_container));
+            getLoaderManager().restartLoader(Constants.LOADER_ID.TRACK_LOADER_ID, null, (ArtistTracksFragment) getFragmentManager().findFragmentById(R.id.track_detail_container));
 
         }
     }
@@ -140,7 +103,7 @@ public class ArtistTracksFragment extends Fragment
                     new String[] {mArtist.id},
                     null);
 
-            if (artistCursor.moveToNext()) mArtistRowId = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_ID);
+            if (artistCursor.moveToNext()) mArtistRowId = artistCursor.getString(Constants.CONTENT_PROVIDER.COL_ARTIST_ID);
             artistCursor.close();
             UpdateTopTracks();
         }
@@ -156,7 +119,7 @@ public class ArtistTracksFragment extends Fragment
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 ((ArtistTracksFragment.Callback) getActivity())
-                        .onItemSelected(cursor.getString(COL_TRACK_ID));
+                        .onTrackSelected(cursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ID));
             }
         });
 
@@ -167,7 +130,7 @@ public class ArtistTracksFragment extends Fragment
     private void UpdateTopTracks() {
         FetchTopTracksTask topTracksTask = new FetchTopTracksTask();
         topTracksTask.execute(mArtist.id);
-            getLoaderManager().initLoader(TRACK_LOADER_ID, null, this);
+            getLoaderManager().initLoader(Constants.LOADER_ID.TRACK_LOADER_ID, null, this);
     }
 
     @Override
@@ -184,7 +147,7 @@ public class ArtistTracksFragment extends Fragment
         if (null != mUri) {
             return new CursorLoader(getActivity(),
                     mUri,
-                    TRACK_COLUMNS,
+                    Constants.CONTENT_PROVIDER.TRACK_COLUMNS,
                     null,
                     null,
                     sortOrder);
@@ -209,6 +172,7 @@ public class ArtistTracksFragment extends Fragment
 
 
     public class FetchTopTracksTask extends AsyncTask<String, Void, Tracks> {
+        //TODO: Use IntentService instead of AsyncTask
         private final String LOG_TAG = FetchTopTracksTask.class.getSimpleName();
 
         @Override

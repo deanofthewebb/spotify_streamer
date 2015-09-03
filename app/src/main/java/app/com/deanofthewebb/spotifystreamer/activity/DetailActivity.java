@@ -1,11 +1,9 @@
 package app.com.deanofthewebb.spotifystreamer.activity;
 
-import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
@@ -99,7 +97,7 @@ public class DetailActivity extends AppCompatActivity
     }
 
     @Override
-    public void onItemSelected(String TrackRowId) {
+    public void onTrackSelected(String TrackRowId) {
         showDialog(TrackRowId);
     }
 }

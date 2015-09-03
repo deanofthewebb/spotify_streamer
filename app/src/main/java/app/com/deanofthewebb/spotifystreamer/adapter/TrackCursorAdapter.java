@@ -11,23 +11,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.Utility;
+import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
+import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 
 public class TrackCursorAdapter extends CursorAdapter {
     private static final String LOG_TAG = ArtistCursorAdapter.class.getSimpleName();
-
-    public static class ViewHolder {
-        public final ImageView icon;
-        public final TextView trackName;
-        public final TextView trackAlbumName;
-
-        public ViewHolder(View view) {
-            trackName = (TextView) view.findViewById(R.id.list_item_track_name);
-            trackAlbumName = (TextView) view.findViewById(R.id.list_item_track_album);
-            icon = (ImageView) view.findViewById(R.id.list_item_album_art);
-        }
-    }
 
     public TrackCursorAdapter(Context context, Cursor c, int flags) {
         super(context, c, flags);
@@ -38,7 +27,7 @@ public class TrackCursorAdapter extends CursorAdapter {
         int layoutId = R.layout.list_item_track;
 
         View view = LayoutInflater.from(context).inflate(layoutId, parent, false);
-        ViewHolder viewHolder = new ViewHolder(view);
+        Constants.TrackCursorViewHolder viewHolder = new Constants.TrackCursorViewHolder(view);
         view.setTag(viewHolder);
 
         return view;
@@ -46,11 +35,11 @@ public class TrackCursorAdapter extends CursorAdapter {
 
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
-        ViewHolder viewHolder = (ViewHolder) view.getTag();
+        Constants.TrackCursorViewHolder viewHolder = (Constants.TrackCursorViewHolder) view.getTag();
 
-        viewHolder.trackName.setText(cursor.getString(ArtistTracksFragment.COL_TRACK_NAME));
-        viewHolder.trackAlbumName.setText(cursor.getString(ArtistTracksFragment.COL_TRACK_ALBUM_NAME));
-        SetAlbumArt(viewHolder.icon, cursor.getString(ArtistTracksFragment.COL_TRACK_IMAGE_URL), true);
+        viewHolder.trackName.setText(cursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_NAME));
+        viewHolder.trackAlbumName.setText(cursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ALBUM_NAME));
+        SetAlbumArt(viewHolder.icon, cursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_IMAGE_URL), true);
     }
 
     private static void SetAlbumArt(ImageView icon, String trackUrl, Boolean useSmallestArt) {

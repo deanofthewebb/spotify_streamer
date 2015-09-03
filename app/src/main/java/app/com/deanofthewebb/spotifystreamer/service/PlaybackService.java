@@ -1,5 +1,7 @@
 package app.com.deanofthewebb.spotifystreamer.service;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -14,7 +16,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.Utility;
+import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
+import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 import kaaes.spotify.webapi.android.SpotifyApi;
@@ -25,23 +28,11 @@ import kaaes.spotify.webapi.android.models.Track;
 public class PlaybackService extends Service {
     private final String LOG_TAG = PlaybackService.class.getSimpleName();
 
-    //MediaPlayer State Actions
-    public static final String ACTION_PLAY = "action.PLAY";
-    public static final String ACTION_RECONNECT = "action.RECONNECT";
-    public static final String ACTION_PAUSE = "action.PAUSE";
-    public static final String ACTION_DESTROY = "action.DESTROY";
-    public static final String ACTION_CREATE = "action.CREATE";
-    public static final String ACTION_STOP = "action.STOP";
-    public static final String ACTION_SKIP_BACK = "action.SKIP_BACK";
-    public static final String ACTION_SKIP_FORWARD = "action.SKIP_FORWARD";
     public MediaPlayer mMediaPlayer;
-
     private SpotifyService mSpotifyService;
     private Track mTrack;
     private String mTrackRowId;
     private int mCurrentPosition = 0;
-    private static final String INTENT_ACTION_KEY = "intent_action";
-
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
     private IBinder mBinder =  new LocalBinder();
@@ -62,7 +53,7 @@ public class PlaybackService extends Service {
             try { mTrack = Utility.buildTrackFromContentProviderId(getApplicationContext(), mTrackRowId);}
             catch (Exception e) { Log.e(LOG_TAG, Log.getStackTraceString(e));}
 
-            updateState(data.getString(INTENT_ACTION_KEY), mTrack.id);
+            updateState(data.getString(Constants.KEY.INTENT_ACTION), mTrack.id);
             // Stop the service using the startId, so that we don't stop
             // the service in the middle of handling another job
         }
@@ -74,7 +65,7 @@ public class PlaybackService extends Service {
         // separate thread because the service normally runs in the process's
         // main thread, which we don't want to block.  We also make it
         // background priority so CPU-intensive work will not disrupt our UI.
-        HandlerThread thread = new HandlerThread("PlaybackService",
+        HandlerThread thread = new HandlerThread(PlaybackService.class.getSimpleName(),
                 android.os.Process.THREAD_PRIORITY_BACKGROUND);
         thread.start();
 
@@ -86,9 +77,17 @@ public class PlaybackService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Bundle data = new Bundle();
-        data.putString(INTENT_ACTION_KEY, intent.getAction());
+        data.putString(Constants.KEY.INTENT_ACTION, intent.getAction());
         data.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,
                 intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID));
+
+        Notification notification = new Notification(R.mipmap.spotify_streamer_launcher, "Now Playing a song",
+                System.currentTimeMillis());
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+        notification.setLatestEventInfo(this, "NOTIFICATION TITLE",
+                "NOTIFICATION MESSAGE", pendingIntent);
+        startForeground(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE, notification);
 
 
         // For each start request, send a message to start a job and deliver the
@@ -132,14 +131,14 @@ public class PlaybackService extends Service {
     public void sendDataToReceivers(boolean timer, boolean changeSong) {
         Intent intent;
         if (timer) {
-            intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
-            intent.putExtra(PlaybackFragment.TRACK_POSITION, Integer.toString(mMediaPlayer.getCurrentPosition()));
+            intent = new Intent(Constants.FILTER.RECEIVER_INTENT_FILTER);
+            intent.putExtra(Constants.KEY.TRACK_POSITION, Integer.toString(mMediaPlayer.getCurrentPosition()));
 
         }
         else {
-            intent = new Intent(PlaybackFragment.RECEIVER_INTENT_FILTER);
+            intent = new Intent(Constants.FILTER.RECEIVER_INTENT_FILTER);
             intent.putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,mTrackRowId);
-            intent.putExtra(PlaybackFragment.CHANGE_TRACK, changeSong);
+            intent.putExtra(Constants.KEY.CHANGE_TRACK, changeSong);
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
@@ -193,9 +192,8 @@ public class PlaybackService extends Service {
 
 
     public void updateState(String ACTION, String trackId) {
-        //TODO: Restart track and duration once song finishes
         switch (ACTION) {
-            case ACTION_CREATE:
+            case Constants.ACTION.CREATE_ACTION:
                 if (mMediaPlayer == null) initMediaPlayer();
                 else if (trackChanged(trackId)) resetMediaPlayer();
                 mMediaPlayer.seekTo(mCurrentPosition);
@@ -204,20 +202,14 @@ public class PlaybackService extends Service {
                 startTimerTask();
                 break;
 
-            case ACTION_PLAY:
+            case Constants.ACTION.PLAY_ACTION:
                 if (mMediaPlayer == null) initMediaPlayer();
                 else if (trackChanged(trackId)) resetMediaPlayer();
                 mMediaPlayer.seekTo(mCurrentPosition);
                 mMediaPlayer.start();
                 break;
 
-            case ACTION_RECONNECT:
-                if (mMediaPlayer == null) initMediaPlayer();
-                mMediaPlayer.seekTo(mCurrentPosition);
-                if (!mMediaPlayer.isPlaying()) mMediaPlayer.start();
-                break;
-
-            case ACTION_SKIP_BACK:
+            case Constants.ACTION.PREV_ACTION:
                 if (mMediaPlayer != null) {
                     resetMediaPlayer();
                     initMediaPlayer();
@@ -227,7 +219,7 @@ public class PlaybackService extends Service {
                 }
                 break;
 
-            case ACTION_SKIP_FORWARD:
+            case Constants.ACTION.NEXT_ACTION:
                 if (mMediaPlayer != null) {
                     resetMediaPlayer();
                     initMediaPlayer();
@@ -237,26 +229,16 @@ public class PlaybackService extends Service {
                 }
                 break;
 
-            case ACTION_PAUSE:
+            case Constants.ACTION.PAUSE_ACTION:
                 if (mMediaPlayer != null) {
                     mMediaPlayer.pause();
                     mCurrentPosition = mMediaPlayer.getCurrentPosition();
                 }
                 break;
 
-            case ACTION_STOP:
+            case Constants.ACTION.STOP_ACTION:
                 if (mMediaPlayer != null) {
                     mMediaPlayer.stop();
-                }
-                break;
-
-            case ACTION_DESTROY:
-                if (mMediaPlayer != null) {
-                    try {
-                        mMediaPlayer.stop();
-                    } catch (IllegalStateException ise) {Log.e(LOG_TAG, "Illegal State Exception has occurred, ignoring for now.");}
-                    mMediaPlayer.release();
-                    if (mTimer != null) mTimer.cancel();
                 }
                 break;
         }

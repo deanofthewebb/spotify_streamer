@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import app.com.deanofthewebb.spotifystreamer.adapter.ArtistCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.R;
+import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
@@ -44,35 +45,7 @@ public class ArtistSearchFragment extends Fragment
     private ListView mListView;
     private int mPosition = mListView.INVALID_POSITION;
 
-    private static final String SELECTED_KEY = "selected_position";
-
     public static String mArtistQuery = "";
-
-    private static final int ARTIST_LOADER_ID = 0;
-    private static final String[] ARTIST_COLUMNS = {
-            // In this case the id needs to be fully qualified with a table name, since
-            // the content provider joins the artist & track tables in the background
-            // (both have an _id column)
-            // On the one hand, that's annoying.  On the other, you can search the track table
-            // using the artist set by the user, which is only in the Artist table.
-            // So the convenience is worth it.
-            ArtistEntry.TABLE_NAME + "." + ArtistEntry._ID,
-            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_NAME,
-            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_API_ID,
-            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_API_URI,
-            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_POPULARITY,
-            ArtistEntry.TABLE_NAME + "." + ArtistEntry.COLUMN_IMAGE_URL
-    };
-
-    // These indices are tied to ARTIST_COLUMNS.  If ARTIST_COLUMNS changes, these
-    // must change.
-    public static final int COL_ARTIST_ID = 0;
-    public static final int COL_ARTIST_NAME = 1;
-    public static final int COL_ARTIST_API_ID = 2;
-    public static final int COL_ARTIST_API_URI = 3;
-    public static final int COL_ARTIST_POPULARITY = 4;
-    public static final int COL_ARTIST_IMAGE_URL = 5;
-
     public ArtistSearchFragment() { }
 
 
@@ -116,15 +89,15 @@ public class ArtistSearchFragment extends Fragment
                 if (cursor != null) {
                     ((ArtistSearchFragment.Callback) getActivity())
                             .onItemSelected(SpotifyStreamerContract.TrackEntry.buildTrackArtist(
-                                    cursor.getString(COL_ARTIST_API_ID)
+                                    cursor.getString(Constants.CONTENT_PROVIDER.COL_ARTIST_API_ID)
                             ));
                 }
                 mPosition = position;
             }
         });
 
-        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
-            mPosition = savedInstanceState.getInt(SELECTED_KEY);
+        if (savedInstanceState != null && savedInstanceState.containsKey(Constants.KEY.SELECTED_ITEM_POSITION)) {
+            mPosition = savedInstanceState.getInt(Constants.KEY.SELECTED_ITEM_POSITION);
         }
 
         return rootView;
@@ -139,7 +112,8 @@ public class ArtistSearchFragment extends Fragment
             public boolean onQueryTextSubmit(String query) {
                 mArtistQuery = searchText.getQuery().toString();
                 UpdateArtistResults(mArtistQuery);
-                getLoaderManager().restartLoader(ARTIST_LOADER_ID, null, (ArtistSearchFragment) getFragmentManager().findFragmentById(R.id.fragment_artist_search));
+                getLoaderManager().restartLoader(Constants.LOADER_ID.ARTIST_LOADER, null,
+                        (ArtistSearchFragment) getFragmentManager().findFragmentById(R.id.fragment_artist_search));
                 return false;
             }
 
@@ -147,7 +121,8 @@ public class ArtistSearchFragment extends Fragment
             public boolean onQueryTextChange(String newText) {
                 mArtistQuery = searchText.getQuery().toString();
                 UpdateArtistResults(mArtistQuery);
-                getLoaderManager().restartLoader(ARTIST_LOADER_ID, null, (ArtistSearchFragment) getFragmentManager().findFragmentById(R.id.fragment_artist_search));
+                getLoaderManager().restartLoader(Constants.LOADER_ID.ARTIST_LOADER, null,
+                        (ArtistSearchFragment) getFragmentManager().findFragmentById(R.id.fragment_artist_search));
                 return false;
             }
         });
@@ -169,11 +144,11 @@ public class ArtistSearchFragment extends Fragment
 
         // Initialize Loader here
         if (!getLoaderManager().hasRunningLoaders()) {
-            getLoaderManager().initLoader(ARTIST_LOADER_ID, null, this);
+            getLoaderManager().initLoader(Constants.LOADER_ID.ARTIST_LOADER, null, this);
         } else {
             // Restart if query changes - not working yet
-            getLoaderManager().destroyLoader(ARTIST_LOADER_ID);
-            getLoaderManager().initLoader(ARTIST_LOADER_ID, null, this);
+            getLoaderManager().destroyLoader(Constants.LOADER_ID.ARTIST_LOADER);
+            getLoaderManager().initLoader(Constants.LOADER_ID.ARTIST_LOADER, null, this);
         }
     }
 
@@ -212,7 +187,7 @@ public class ArtistSearchFragment extends Fragment
         return new CursorLoader(
                 getActivity(),
                 projection,
-                ARTIST_COLUMNS,
+                Constants.CONTENT_PROVIDER.ARTIST_COLUMNS,
                 null,
                 null,
                 sortOrder);
@@ -225,7 +200,7 @@ public class ArtistSearchFragment extends Fragment
         // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
         // so check for that before storing.
         if (mPosition != ListView.INVALID_POSITION) {
-            outState.putInt(SELECTED_KEY, mPosition);
+            outState.putInt(Constants.KEY.SELECTED_ITEM_POSITION, mPosition);
         }
         super.onSaveInstanceState(outState);
     }
