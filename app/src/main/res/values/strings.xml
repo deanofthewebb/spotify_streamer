@@ -25,6 +25,7 @@
     <string name="pref_country_code_ethiopia">ET</string>
 
     <string name="title_activity_playback">Spotify Streamer</string>
+    <string name="service_destroy_toast">Service Done, being destroyed</string>
 
 
 </resources>

@@ -1,5 +1,7 @@
 package app.com.deanofthewebb.spotifystreamer;
 
+import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.ImageView;
@@ -9,58 +11,140 @@ import com.squareup.picasso.Picasso;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
 
+import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
+import app.com.deanofthewebb.spotifystreamer.fragment.ArtistSearchFragment;
+import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
+import kaaes.spotify.webapi.android.models.Album;
+import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 
 public class Utility {
     private static final String LOG_TAG = Utility.class.getSimpleName();
 
-    public static void SetAlbumArt(ImageView icon, Track track, boolean useSmallestArt) {
+    public static void SafelyLoadImageFromPicasso(ImageView icon, String imageUrl, boolean useSmallestArt) {
+        try {
+            URL url = new URL(imageUrl);
+            Uri uri = Uri.parse( url.toURI().toString() );
 
-        int imageIndex = useSmallestArt ? track.album.images.size() - 1 : 0;
-        if (!track.album.images.isEmpty()) {
-            Image trackAlbumImage = track.album.images.get(imageIndex);
-            SafelyLoadImageFromPicasso(icon, trackAlbumImage, useSmallestArt);
+            if (useSmallestArt) {
+                Picasso.with(icon.getContext())
+                        .load(uri)
+                        .resizeDimen(R.dimen.artist_image_dimen, R.dimen.artist_image_dimen)
+                        .centerCrop()
+                        .into(icon);
+            }
+            else {
+                Picasso.with(icon.getContext())
+                        .load(uri)
+                        .resize(icon.getMaxWidth(), icon.getMaxHeight())
+                        .centerCrop()
+                        .into(icon);
+            }
         }
-        else{
-            Log.d(LOG_TAG, "No Images found, using default..");
+        catch (MalformedURLException e1) {
+            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
+        }
+        catch (URISyntaxException e) {
+            icon.setImageResource(R.mipmap.spotify_streamer_launcher);
+        }
+        catch (Exception ex) {
+            Log.d(LOG_TAG, "An error has occured" + ex.getMessage());
+            Log.d(LOG_TAG, Log.getStackTraceString(ex));
             icon.setImageResource(R.mipmap.spotify_streamer_launcher);
         }
     }
 
-    static void SafelyLoadImageFromPicasso(ImageView albumArt, Image trackAlbumImage, boolean useSmallestArt) {
-        try {
-            URL url = new URL(trackAlbumImage.url);
-            Uri uri = Uri.parse( url.toURI().toString() );
 
-            if (useSmallestArt) {
-                Picasso.with(albumArt.getContext())
-                        .load(uri)
-                        .resizeDimen(R.dimen.artist_image_dimen, R.dimen.artist_image_dimen)
-                        .centerCrop()
-                        .into(albumArt);
-            }
-            else {
-                Picasso.with(albumArt.getContext())
-                        .load(uri)
-                        .resize(albumArt.getMaxWidth(), albumArt.getMaxHeight())
-                        .centerCrop()
-                        .into(albumArt);
-            }
+    public static Track buildTrackFromContentProviderId(Context context, String trackRowId) throws Exception {
+        return convertCursorToTrack(context, SpotifyStreamerContract.TrackEntry._ID + " = ? ", trackRowId);
+    }
 
-        }
-        catch (MalformedURLException e1) {
-            albumArt.setImageResource(R.mipmap.spotify_streamer_launcher);
-        }
-        catch (URISyntaxException e) {
-            albumArt.setImageResource(R.mipmap.spotify_streamer_launcher);
-        }
-        catch (Exception ex) {
-            Log.d(LOG_TAG, "An error has occured. " + ex.getMessage());
-            Log.e(LOG_TAG, Log.getStackTraceString(ex));
 
-            albumArt.setImageResource(R.mipmap.spotify_streamer_launcher);
-        }
+    public static Track buildTrackFromContentProviderApiId(Context context, String ApiId) throws Exception {
+        return convertCursorToTrack(context, SpotifyStreamerContract.TrackEntry.COLUMN_API_ID + " = ? ", ApiId);
+    }
+
+
+    public static Track convertCursorToTrack(Context context, String selection, String selectionArg)  throws Exception {
+        Cursor trackCursor = context.getContentResolver().query(
+                SpotifyStreamerContract.TrackEntry.CONTENT_URI,
+                null,
+                selection,
+                new String[]{selectionArg},
+                null);
+
+
+        Track track = new Track();
+        Album album = new Album();
+        Image image = new Image();
+
+
+        if (trackCursor.moveToNext()) {
+            Artist artist = buildArtistFromContentProviderId(context, trackCursor.getString(ArtistTracksFragment.COL_TRACK_ARTIST_KEY));
+            track.id = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
+            track.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_NAME);
+            track.uri = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_URI);
+            track.popularity = Integer.getInteger(trackCursor.getString(6), 10);
+            track.preview_url = trackCursor.getString(4);
+
+            album.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_ALBUM_NAME);
+            album.images = new ArrayList<>();
+            image.url = trackCursor.getString(7);
+            album.images.add(image);
+
+            track.album = album;
+            track.artists = new ArrayList<>();
+            track.artists.add(artist);
+            String[] markets = new String[] {trackCursor.getString(5)};
+            track.available_markets = new ArrayList<>(Arrays.asList(markets));
+
+            if (trackCursor.moveToNext()) throw new Exception("More than one row returned in Track Cursor (selectionArg): " + selectionArg);
+        } else { throw new Exception("Track Cursor did not return any results for selection Arg: " + selectionArg);}
+
+        trackCursor.close();
+        return track;
+    }
+
+
+
+    public static Artist buildArtistFromContentProviderApiId(Context context, String ApiId) throws Exception {
+        return convertCursorToArtist(context, SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID + " = ? ", ApiId);
+    }
+
+
+    public static Artist buildArtistFromContentProviderId(Context context, String artistRowId) throws Exception {
+        return  convertCursorToArtist(context, SpotifyStreamerContract.ArtistEntry._ID + " = ? ", artistRowId);
+    }
+
+
+    public static Artist convertCursorToArtist(Context context, String selection, String selectionArgs) throws Exception {
+        Artist artist = new Artist();
+
+        Cursor artistCursor = context.getContentResolver().query(
+                SpotifyStreamerContract.ArtistEntry.CONTENT_URI,
+                null,
+                selection,
+                new String[] {selectionArgs},
+                null);
+
+        if (artistCursor.moveToNext()) {
+            artist.id = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_API_ID);
+            artist.name = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_NAME);
+            artist.uri = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_API_URI);
+            artist.popularity = Integer.getInteger(artistCursor.getString(ArtistSearchFragment.COL_ARTIST_POPULARITY), 0);
+            Image image = new Image();
+            image.url = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_IMAGE_URL);
+            artist.images = new ArrayList<>();
+            artist.images.add(image);
+
+            if (artistCursor.moveToNext()) throw new Exception("More than one row returned in Artist Cursor (selectionArg): " + selectionArgs);
+        } else { throw new Exception("Artist Cursor did not return any results for selectionArgs: " + selectionArgs);}
+
+        artistCursor.close();
+        return artist;
     }
 }

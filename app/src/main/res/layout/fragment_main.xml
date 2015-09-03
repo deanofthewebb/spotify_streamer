@@ -13,6 +13,7 @@
         android:layout_gravity="center" />
 
     <ListView
+        style="@style/ArtistListStyle"
         android:id="@+id/artist_results_listview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
