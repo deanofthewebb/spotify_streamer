@@ -1,5 +1,6 @@
 package app.com.deanofthewebb.spotifystreamer.fragment;
 
+import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import app.com.deanofthewebb.spotifystreamer.Utility;
 import app.com.deanofthewebb.spotifystreamer.activity.PlaybackActivity;
 import app.com.deanofthewebb.spotifystreamer.adapter.TrackCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
@@ -35,6 +37,7 @@ import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.activity.DetailActivity;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
@@ -44,15 +47,29 @@ import retrofit.RetrofitError;
 public class ArtistTracksFragment extends Fragment
         implements LoaderManager.LoaderCallbacks<Cursor>{
     private final String LOG_TAG = ArtistTracksFragment.class.getSimpleName();
-    private static String mArtistApiId;
-    private static String mArtistRowId;
-    private static String mArtistName;
+    private static Artist mArtist;
 
     private TrackCursorAdapter mTrackCursorAdapter;
     private ListView mListView;
     private int mPosition = mListView.INVALID_POSITION;
 
     private static final String SELECTED_KEY = "selected_position";
+    public static final String DETAIL_URI = "URI";
+    private Uri mUri;
+    private String mArtistRowId;
+
+
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * ArtistTracksFragmentCallback for when an item has been selected.
+         */
+        void onItemSelected(Uri trackUri);
+    }
 
     private static final int TRACK_LOADER_ID = 0;
     private static final String[] TRACK_COLUMNS = {
@@ -102,28 +119,45 @@ public class ArtistTracksFragment extends Fragment
     @Override
     public void onOptionsMenuClosed(Menu menu) {
         super.onOptionsMenuClosed(menu);
-        if (mArtistApiId != null) { UpdateTopTracks(); }
-    }
+        if (mArtist != null) {
+            UpdateTopTracks();
+            getLoaderManager().restartLoader(TRACK_LOADER_ID, null, (ArtistTracksFragment) getFragmentManager().findFragmentById(R.id.track_detail_container));
 
+        }
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        Bundle arguments = getArguments();
+        if (arguments != null) {
+            Log.v(LOG_TAG, "SHOULDN'T BE IN HERE UNTIL AFTER WE CLICK BUTTON");
+            mUri = arguments.getParcelable(ArtistTracksFragment.DETAIL_URI);
+
+            try {
+                mArtist = Utility.buildArtistFromContentProviderApiId(getActivity(), SpotifyStreamerContract.TrackEntry.getTrackArtistIdFromUri(mUri));
+            } catch (Exception e) { e.printStackTrace(); }
+
+            Cursor artistCursor = getActivity().getContentResolver().query(
+                    SpotifyStreamerContract.ArtistEntry.CONTENT_URI,
+                    null,
+                    SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID + " = ? ",
+                    new String[] {mArtist.id},
+                    null);
+
+            if (artistCursor.moveToNext()) mArtistRowId = artistCursor.getString(ArtistSearchFragment.COL_ARTIST_ID);
+            artistCursor.close();
+            UpdateTopTracks();
+        }
+
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
-        Intent artistDetailIntent = getActivity().getIntent();
-
         mTrackCursorAdapter = new TrackCursorAdapter(getActivity(), null, 0);
-
         mListView = (ListView) rootView.findViewById(R.id.track_results_listview);
         mListView.setAdapter(mTrackCursorAdapter);
 
-        if (artistDetailIntent != null && artistDetailIntent.hasExtra(SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID)) {
-            mArtistApiId = artistDetailIntent.getStringExtra(SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID);
-            mArtistRowId = artistDetailIntent.getStringExtra(SpotifyStreamerContract.ArtistEntry._ID);
-            mArtistName = artistDetailIntent.getStringExtra(SpotifyStreamerContract.ArtistEntry.COLUMN_NAME);
-            ((DetailActivity)getActivity()).setActionBarSubTitle(mArtistName);
-            UpdateTopTracks();
-        } else { Log.e(LOG_TAG, "Intent passed is null!"); }
+//        Activity activity = getActivity();
+//        if (activity.ge)
+//                ((DetailActivity) getActivity()).setActionBarSubTitle(mArtist.name);
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -142,7 +176,7 @@ public class ArtistTracksFragment extends Fragment
 
     private void UpdateTopTracks() {
         FetchTopTracksTask topTracksTask = new FetchTopTracksTask();
-        topTracksTask.execute(mArtistApiId);
+        topTracksTask.execute(mArtist.id);
 
         // Initialize Loader here
         if (!getLoaderManager().hasRunningLoaders()) {
@@ -161,14 +195,15 @@ public class ArtistTracksFragment extends Fragment
         // Sort order:  Descending, by name relevance.
         String sortOrder = SpotifyStreamerContract.TrackEntry.TABLE_NAME + "." + SpotifyStreamerContract.TrackEntry.COLUMN_POPULARITY + " DESC";
 
-        Uri projection = SpotifyStreamerContract.TrackEntry.buildTrackArtist(mArtistApiId);
-
-        return new CursorLoader(getActivity(),
-                projection,
-                TRACK_COLUMNS,
-                null,
-                null,
-                sortOrder);
+        if (null != mUri) {
+            return new CursorLoader(getActivity(),
+                    mUri,
+                    TRACK_COLUMNS,
+                    null,
+                    null,
+                    sortOrder);
+        }
+        return null;
     }
 
     @Override

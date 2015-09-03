@@ -58,6 +58,7 @@ public class Utility {
         }
     }
 
+
     public static Track buildTrackFromContentProviderId(Context context, String trackRowId) throws Exception {
         return convertCursorToTrack(context, SpotifyStreamerContract.TrackEntry._ID + " = ? ", trackRowId);
     }
@@ -83,7 +84,7 @@ public class Utility {
 
 
         if (trackCursor.moveToNext()) {
-            Artist artist = buildArtistFromContentProvider(context, trackCursor.getString(ArtistTracksFragment.COL_TRACK_ARTIST_KEY));
+            Artist artist = buildArtistFromContentProviderId(context, trackCursor.getString(ArtistTracksFragment.COL_TRACK_ARTIST_KEY));
             track.id = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_ID);
             track.name = trackCursor.getString(ArtistTracksFragment.COL_TRACK_NAME);
             track.uri = trackCursor.getString(ArtistTracksFragment.COL_TRACK_API_URI);
@@ -109,14 +110,25 @@ public class Utility {
     }
 
 
-    public static Artist buildArtistFromContentProvider(Context context, String artistRowId) throws Exception {
+
+    public static Artist buildArtistFromContentProviderApiId(Context context, String ApiId) throws Exception {
+        return convertCursorToArtist(context, SpotifyStreamerContract.ArtistEntry.COLUMN_API_ID + " = ? ", ApiId);
+    }
+
+
+    public static Artist buildArtistFromContentProviderId(Context context, String artistRowId) throws Exception {
+        return  convertCursorToArtist(context, SpotifyStreamerContract.ArtistEntry._ID + " = ? ", artistRowId);
+    }
+
+
+    public static Artist convertCursorToArtist(Context context, String selection, String selectionArgs) throws Exception {
         Artist artist = new Artist();
 
         Cursor artistCursor = context.getContentResolver().query(
                 SpotifyStreamerContract.ArtistEntry.CONTENT_URI,
                 null,
-                SpotifyStreamerContract.ArtistEntry._ID + " = ? ",
-                new String[]{artistRowId},
+                selection,
+                new String[] {selectionArgs},
                 null);
 
         if (artistCursor.moveToNext()) {
@@ -129,8 +141,8 @@ public class Utility {
             artist.images = new ArrayList<>();
             artist.images.add(image);
 
-            if (artistCursor.moveToNext()) throw new Exception("More than one row returned in Artist Cursor (row id): " + artistRowId);
-        } else { throw new Exception("Artist Cursor did not return any results for row id: " + artistRowId);}
+            if (artistCursor.moveToNext()) throw new Exception("More than one row returned in Artist Cursor (selectionArg): " + selectionArgs);
+        } else { throw new Exception("Artist Cursor did not return any results for selectionArgs: " + selectionArgs);}
 
         artistCursor.close();
         return artist;

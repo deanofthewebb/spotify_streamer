@@ -101,12 +101,12 @@ public class ArtistSearchFragment extends Fragment
                 // if it cannot seek to that position.
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
 
-                Intent artistDetailIntent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(ArtistEntry.COLUMN_API_ID, cursor.getString(ArtistSearchFragment.COL_ARTIST_API_ID))
-                        .putExtra(ArtistEntry._ID, cursor.getString(ArtistSearchFragment.COL_ARTIST_ID))
-                        .putExtra(ArtistEntry.COLUMN_NAME, cursor.getString(ArtistSearchFragment.COL_ARTIST_NAME));
-
-                startActivity(artistDetailIntent);
+                if (cursor != null) {
+                    ((ArtistTracksFragment.Callback) getActivity())
+                            .onItemSelected(SpotifyStreamerContract.TrackEntry.buildTrackArtist(
+                                    cursor.getString(COL_ARTIST_API_ID)
+                            ));
+                }
             }
         });
 
@@ -133,13 +133,15 @@ public class ArtistSearchFragment extends Fragment
             public boolean onQueryTextSubmit(String query) {
                 mArtistQuery = searchText.getQuery().toString();
                 UpdateArtistResults(mArtistQuery);
+                getLoaderManager().restartLoader(ARTIST_LOADER_ID, null, (ArtistSearchFragment) getFragmentManager().findFragmentById(R.id.fragment_artist_search));
                 return false;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
                 mArtistQuery = searchText.getQuery().toString();
-                //UpdateArtistResults(mArtistQuery);
+                UpdateArtistResults(mArtistQuery);
+                getLoaderManager().restartLoader(ARTIST_LOADER_ID, null, (ArtistSearchFragment) getFragmentManager().findFragmentById(R.id.fragment_artist_search));
                 return false;
             }
         });
@@ -201,7 +203,8 @@ public class ArtistSearchFragment extends Fragment
             projection = ArtistEntry.buildArtistByQuery(mArtistQuery);
         }
 
-        return new CursorLoader(getActivity(),
+        return new CursorLoader(
+                getActivity(),
                 projection,
                 ARTIST_COLUMNS,
                 null,

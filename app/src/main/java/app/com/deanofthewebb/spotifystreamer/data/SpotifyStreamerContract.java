@@ -107,9 +107,9 @@ public class SpotifyStreamerContract {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
 
-        public static Uri buildTrackArtist(String artistId) {
+        public static Uri buildTrackArtist(String artistApiId) {
             return CONTENT_URI.buildUpon()
-                    .appendPath(artistId).build();
+                    .appendPath(artistApiId).build();
         }
 
         public static String getTrackArtistIdFromUri(Uri uri) {
