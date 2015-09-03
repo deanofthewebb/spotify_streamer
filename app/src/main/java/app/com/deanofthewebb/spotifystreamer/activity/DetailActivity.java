@@ -60,7 +60,6 @@ public class DetailActivity extends AppCompatActivity
             fragment.show(fragmentManager, "dialog");
         } else {
             //remove existing fragment
-
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
             transaction.remove(trackFragment).addToBackStack(null)
