@@ -1,8 +1,10 @@
 package app.com.deanofthewebb.spotifystreamer.service;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.AudioManager;
@@ -36,6 +38,7 @@ public class PlaybackService extends Service {
     private ServiceHandler mServiceHandler;
     private Timer mTimer;
     private boolean mIsPlaying = true;
+    private  NotificationManager mNotifyManager;
 
 
     // Handler that receives messages from the thread
@@ -46,6 +49,7 @@ public class PlaybackService extends Service {
         @Override
         public void handleMessage(Message msg) {
             Bundle data = msg.getData();
+            mNotifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
             mTrackRowId = data.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
             setTrack();
@@ -160,62 +164,14 @@ public class PlaybackService extends Service {
 
 
     private void updateState(String ACTION, boolean isLargeLayout, int progress) {
-        Intent notificationIntent;
+
+        String trackImageUrl = mTrack.album.images.get(0).url;
+        Bitmap icon = Utility.getBitmapFromURL(trackImageUrl);
 
         switch (ACTION) {
             case Constants.ACTION.START_FOREGROUND:
                 Log.i(LOG_TAG, "Received Start Foreground Intent ");
-
-                if (isLargeLayout) notificationIntent  = new Intent(this, MainActivity.class);
-                else notificationIntent = new Intent(this, PlaybackActivity.class);
-
-                notificationIntent.setAction(Constants.ACTION.CREATE);
-                notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
-                        notificationIntent, 0);
-
-
-                Intent previousIntent = new Intent(this, PlaybackService.class);
-                previousIntent.setAction(Constants.ACTION.SKIP_BACK);
-                PendingIntent pPreviousIntent = PendingIntent.getService(this, 0,
-                        previousIntent, 0);
-
-                Intent playIntent = new Intent(this, PlaybackService.class);
-                playIntent.setAction(Constants.ACTION.PAUSE);
-                PendingIntent pPlayIntent = PendingIntent.getService(this, 0,
-                        playIntent, 0);
-
-                Intent pauseIntent = new Intent(this, PlaybackService.class);
-                playIntent.setAction(Constants.ACTION.PAUSE);
-                PendingIntent pPauseIntent = PendingIntent.getService(this, 0,
-                        pauseIntent, 0);
-
-                Intent nextIntent = new Intent(this, PlaybackService.class);
-                nextIntent.setAction(Constants.ACTION.SKIP_FORWARD);
-                PendingIntent pNextIntent = PendingIntent.getService(this, 0,
-                        nextIntent, 0);
-
-                String trackImageUrl = mTrack.album.images.get(0).url;
-                Bitmap icon = Utility.getBitmapFromURL(trackImageUrl);
-
-                Notification notification = new NotificationCompat.Builder(this)
-                        .setContentTitle("Spotify Streamer Player")
-                        .setTicker("Spotify Streamer Playing: " + mTrack.name)
-                        .setContentText(mTrack.album.name)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setLargeIcon(
-                                Bitmap.createScaledBitmap(icon, 128, 128, false))
-                        .setContentIntent(pendingIntent)
-                        .setOngoing(true)
-                        .addAction(android.R.drawable.ic_media_previous, "Previous",
-                                pPreviousIntent)
-                        .addAction(android.R.drawable.ic_media_play, "Play",
-                                pPlayIntent)
-                        .addAction(android.R.drawable.ic_media_pause, "Pause",
-                                pPauseIntent)
-                        .addAction(android.R.drawable.ic_media_next, "Next",
-                                pNextIntent).build();
+                Notification notification = buildForegroundNotification(isLargeLayout, ACTION, icon);
 
                 startForeground(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
                         notification);
@@ -230,6 +186,9 @@ public class PlaybackService extends Service {
                 mMediaPlayer.start();
                 sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
                 startTimerTask();
+
+                mNotifyManager.notify(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                        buildForegroundNotification(isLargeLayout, ACTION, icon));
                 break;
 
             case Constants.ACTION.PLAY:
@@ -240,12 +199,24 @@ public class PlaybackService extends Service {
                 mMediaPlayer.start();
                 mIsPlaying = true;
                 sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
+
+                trackImageUrl = mTrack.album.images.get(0).url;
+                icon = Utility.getBitmapFromURL(trackImageUrl);
+
+                if (mNotifyManager != null) {
+                    mNotifyManager.notify(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                            buildForegroundNotification(isLargeLayout, ACTION, icon));
+                }
+
                 break;
 
             case Constants.ACTION.UPDATE_PROGRESS:
                 if (mMediaPlayer != null) {
                     mMediaPlayer.seekTo(progress);
                 }
+
+                mNotifyManager.notify(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                        buildForegroundNotification(isLargeLayout, ACTION, icon));
                 break;
 
             case Constants.ACTION.SKIP_BACK:
@@ -257,6 +228,9 @@ public class PlaybackService extends Service {
                     sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
                     startTimerTask();
                 }
+
+                mNotifyManager.notify(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                        buildForegroundNotification(isLargeLayout, ACTION, icon));
                 break;
 
             case Constants.ACTION.SKIP_FORWARD:
@@ -268,6 +242,9 @@ public class PlaybackService extends Service {
                     sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
                     startTimerTask();
                 }
+
+                mNotifyManager.notify(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                        buildForegroundNotification(isLargeLayout, ACTION, icon));
                 break;
 
             case Constants.ACTION.PAUSE:
@@ -275,7 +252,13 @@ public class PlaybackService extends Service {
                 if (mMediaPlayer != null) {
                     mMediaPlayer.pause();
                     mCurrentPosition = mMediaPlayer.getCurrentPosition();
-                    mIsPlaying = false; //Should be false
+                    mIsPlaying = false;
+
+                    trackImageUrl = mTrack.album.images.get(0).url;
+                    icon = Utility.getBitmapFromURL(trackImageUrl);
+
+                    mNotifyManager.notify(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                            buildForegroundNotification(isLargeLayout, ACTION, icon));
                 }
                 break;
 
@@ -289,6 +272,75 @@ public class PlaybackService extends Service {
                 stopForeground(true);
                 break;
         }
+    }
+
+    private Notification buildForegroundNotification(boolean isLargeLayout, String ACTION,
+                                             Bitmap icon) {
+
+        Intent notificationIntent;
+
+        if (isLargeLayout) notificationIntent  = new Intent(this, MainActivity.class);
+        else notificationIntent = new Intent(this, PlaybackActivity.class);
+
+        notificationIntent.setAction(ACTION);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
+                notificationIntent, 0);
+
+        Intent previousIntent = new Intent(this, PlaybackService.class);
+        previousIntent.setAction(Constants.ACTION.SKIP_BACK);
+        PendingIntent pPreviousIntent = PendingIntent.getService(this, 0,
+                previousIntent, 0);
+
+        Intent playIntent = new Intent(this, PlaybackService.class);
+        playIntent.setAction(Constants.ACTION.PAUSE);
+        PendingIntent pPlayIntent = PendingIntent.getService(this, 0,
+                playIntent, 0);
+
+        Intent pauseIntent = new Intent(this, PlaybackService.class);
+        playIntent.setAction(Constants.ACTION.PAUSE);
+        PendingIntent pPauseIntent = PendingIntent.getService(this, 0,
+                pauseIntent, 0);
+
+        Intent nextIntent = new Intent(this, PlaybackService.class);
+        nextIntent.setAction(Constants.ACTION.SKIP_FORWARD);
+        PendingIntent pNextIntent = PendingIntent.getService(this, 0,
+                nextIntent, 0);
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this);
+
+        notificationBuilder
+                .setContentTitle(mTrack.name)
+                .setTicker("Spotify Streamer Playing: " + mTrack.name)
+                .setContentText(mTrack.artists.get(0).name)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setLargeIcon(
+                        Bitmap.createScaledBitmap(icon, 128, 128, false))
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .addAction(android.R.drawable.ic_media_previous, "Previous",
+                        pPreviousIntent);
+
+        if (mIsPlaying) {
+            notificationBuilder.addAction(android.R.drawable.ic_media_pause, "Pause",
+                   pPauseIntent);
+        } else {
+            notificationBuilder.addAction(android.R.drawable.ic_media_play, "Play",
+                    pPlayIntent);
+        }
+
+        if (mMediaPlayer != null ) {
+            int progress = mMediaPlayer.getCurrentPosition();
+            if (progress > 0) {
+                notificationBuilder.setProgress(mMediaPlayer.getDuration(), progress, false);
+            }
+        }
+
+        Notification notification = notificationBuilder
+                .addAction(android.R.drawable.ic_media_next, "Next",
+                        pNextIntent).build();
+        return notification;
     }
 
 
