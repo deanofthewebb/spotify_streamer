@@ -57,7 +57,22 @@ public class PlaybackService extends Service {
             int progress = data.getInt(Constants.KEY.PROGRESS, 0);
             String action = data.getString(Constants.KEY.INTENT_ACTION);
             boolean isLargeLayout = data.getBoolean(Constants.KEY.LARGE_LAYOUT_FLAG);
-            updateState(action, isLargeLayout, progress);
+
+            Log.i(LOG_TAG, "Sending Progress to updateState. ACTION: " + action + " Progress: " + progress
+                    + "currentPosition:" + mCurrentPosition);
+
+            if (data.getInt(Constants.KEY.TRACK_POSITION, -1) != -1) {
+                Log.i(LOG_TAG, "Setting Track Progress: " + progress
+                        + "currentPosition" + mCurrentPosition);
+                mCurrentPosition = data.getInt(Constants.KEY.TRACK_POSITION, -1);
+                progress = mCurrentPosition;
+            }
+
+            if (mCurrentPosition != -1 && progress == 0) {
+                updateState(action, isLargeLayout, mCurrentPosition);
+            } else {
+                updateState(action, isLargeLayout, progress);
+            }
             // Stop the service using the startId, so that we don't stop
             // the service in the middle of handling another job
 
@@ -101,6 +116,11 @@ public class PlaybackService extends Service {
         if (intent.hasExtra(Constants.KEY.PROGRESS)) {
             data.putInt(Constants.KEY.PROGRESS,
                     intent.getIntExtra(Constants.KEY.PROGRESS, 0));
+        }
+
+        if (intent.hasExtra(Constants.KEY.TRACK_POSITION)) {
+            data.putInt(Constants.KEY.TRACK_POSITION,
+                    intent.getIntExtra(Constants.KEY.TRACK_POSITION, -1));
         }
 
         // For each start request, send a message to start a job and deliver the
@@ -191,13 +211,22 @@ public class PlaybackService extends Service {
                         buildForegroundNotification(isLargeLayout, ACTION, icon));
                 break;
 
+            case Constants.ACTION.UPDATE_VIEW:
+                Log.i(LOG_TAG, "Received Create Intent. Resetting the mMediaPlayer ");
+                sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
+                mNotifyManager.notify(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                        buildForegroundNotification(isLargeLayout, ACTION, icon));
+                break;
+
             case Constants.ACTION.PLAY:
                 Log.i(LOG_TAG, "Received Play Intent ");
                 if (mMediaPlayer == null) initMediaPlayer();
                 else resetMediaPlayer();
-                mMediaPlayer.seekTo(mCurrentPosition);
-                mMediaPlayer.start();
-                mIsPlaying = true;
+                if (!mIsPlaying) {
+                    mMediaPlayer.seekTo(mCurrentPosition);
+                    mMediaPlayer.start();
+                    mIsPlaying = true;
+                }
                 sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
 
                 trackImageUrl = mTrack.album.images.get(0).url;
@@ -212,6 +241,8 @@ public class PlaybackService extends Service {
 
             case Constants.ACTION.UPDATE_PROGRESS:
                 if (mMediaPlayer != null) {
+                    Log.i(LOG_TAG, "Updating Progress. Progress: " + progress + " CurrentPosition: " + mCurrentPosition);
+                    mCurrentPosition = progress;
                     mMediaPlayer.seekTo(progress);
                 }
 
