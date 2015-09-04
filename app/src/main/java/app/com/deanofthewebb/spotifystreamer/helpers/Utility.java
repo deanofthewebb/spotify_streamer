@@ -1,13 +1,22 @@
 package app.com.deanofthewebb.spotifystreamer.helpers;
 
+import android.app.Activity;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -18,6 +27,7 @@ import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistSearchFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
+import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 import kaaes.spotify.webapi.android.models.Album;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.Image;
@@ -56,6 +66,47 @@ public class Utility {
             Log.d(LOG_TAG, "An error has occured" + ex.getMessage());
             Log.d(LOG_TAG, Log.getStackTraceString(ex));
             icon.setImageResource(R.mipmap.spotify_streamer_launcher);
+        }
+    }
+
+
+    public static Bitmap getBitmapFromURL(String src) {
+        try {
+            URL url = new URL(src);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+            InputStream input = connection.getInputStream();
+            Bitmap myBitmap = BitmapFactory.decodeStream(input);
+            return myBitmap;
+        } catch (IOException e) {
+            Log.e(LOG_TAG, e.getMessage());
+            Log.e(LOG_TAG, Log.getStackTraceString(e));
+            return null;
+        }
+    }
+
+
+    public static void showPlaybackDialog(Activity activity, String trackRowId, boolean isLargeLayout) {
+        FragmentManager fragmentManager = activity.getFragmentManager();
+        PlaybackFragment fragment = new PlaybackFragment();
+
+        Bundle args = new Bundle();
+        args.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, trackRowId);
+        args.putBoolean(Constants.KEY.LARGE_LAYOUT_FLAG, isLargeLayout);
+        fragment.setArguments(args);
+
+        if (isLargeLayout) {
+            // The device is using a large layout, so show the fragment as a dialog
+            fragment.show(fragmentManager, "dialog");
+        } else {
+            ArtistTracksFragment trackFragment = (ArtistTracksFragment) fragmentManager.findFragmentById(R.id.track_detail_container);
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+            transaction.remove(trackFragment).addToBackStack(null)
+                    .addToBackStack(null);
+            transaction.add(R.id.track_detail_container, fragment)
+                    .addToBackStack(null).commit();
         }
     }
 
@@ -147,5 +198,11 @@ public class Utility {
 
         artistCursor.close();
         return artist;
+    }
+
+
+    public static void LogError(String Message, Exception ex) {
+        Log.e(LOG_TAG, Message + ": " + ex.getMessage());
+        Log.e(LOG_TAG, Log.getStackTraceString(ex));
     }
 }

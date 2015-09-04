@@ -10,24 +10,30 @@ import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 
 public class Constants {
     public interface ACTION {
-        String MAIN_ACTION = "app.com.deanofthewebb.spotifystreamer.action.main";
-        String CREATE_ACTION = "app.com.deanofthewebb.spotifystreamer.action.create";
-        String PREV_ACTION = "app.com.deanofthewebb.spotifystreamer.action.prev";
-        String PLAY_ACTION = "app.com.deanofthewebb.spotifystreamer.action.play";
-        String PAUSE_ACTION = "app.com.deanofthewebb.spotifystreamer.action.pause";
-        String NEXT_ACTION = "app.com.deanofthewebb.spotifystreamer.action.next";
-        String STOP_ACTION = "app.com.deanofthewebb.spotifystreamer.action.stop";
-        String STARTFOREGROUND_ACTION = "app.com.deanofthewebb.spotifystreamer.action.startforeground";
-        String STOPFOREGROUND_ACTION = "app.com.deanofthewebb.spotifystreamer.action.stopforeground";
+        String MAIN = "app.com.deanofthewebb.spotifystreamer.action.main";
+        String CREATE = "app.com.deanofthewebb.spotifystreamer.action.create";
+        String SKIP_BACK = "app.com.deanofthewebb.spotifystreamer.action.prev";
+        String PLAY = "app.com.deanofthewebb.spotifystreamer.action.play";
+        String PAUSE = "app.com.deanofthewebb.spotifystreamer.action.pause";
+        String SKIP_FORWARD = "app.com.deanofthewebb.spotifystreamer.action.next";
+        String STOP = "app.com.deanofthewebb.spotifystreamer.action.stop";
+        String START_FOREGROUND = "app.com.deanofthewebb.spotifystreamer.action.start_foreground";
+        String STOP_FOREGROUND = "app.com.deanofthewebb.spotifystreamer.action.stop_foreground";
+        String SET_POSITION = "app.com.deanofthewebb.spotifystreamer.action.set_position";
+        String UPDATE_VIEW = "app.com.deanofthewebb.spotifystreamer.action.update_view";
+        String UPDATE_PROGRESS = "app.com.deanofthewebb.spotifystreamer.action.update_progress";
+        String SET_PLAYING_FLAG = "app.com.deanofthewebb.spotifystreamer.action.set_is_playing_flag";
     }
 
 
     public interface KEY {
-        String INTENT_ACTION = "intent_action";
-        String TRACK_POSITION = "track_position";
-        String CHANGE_TRACK = "change_track";
-        String SELECTED_ITEM_POSITION = "selected_position";
-        String TRACK_ID_EXTRA = "t_n_e";
+        String INTENT_ACTION = "intent_action_key";
+        String TRACK_POSITION = "track_position_key";
+        String PROGRESS = "progress_key";
+        String SELECTED_ITEM_POSITION = "selected_position_key";
+        String LARGE_LAYOUT_FLAG = "is_large_layout_key";
+        String DURATION = "duration_key";
+        String IS_PLAYING = "is_playing_key";
     }
 
 

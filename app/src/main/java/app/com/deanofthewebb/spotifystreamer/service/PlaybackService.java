@@ -4,10 +4,12 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.*;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -16,12 +18,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import app.com.deanofthewebb.spotifystreamer.R;
+import app.com.deanofthewebb.spotifystreamer.activity.MainActivity;
+import app.com.deanofthewebb.spotifystreamer.activity.PlaybackActivity;
 import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
 import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
-import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
-import kaaes.spotify.webapi.android.SpotifyApi;
-import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
 
 
@@ -29,14 +30,12 @@ public class PlaybackService extends Service {
     private final String LOG_TAG = PlaybackService.class.getSimpleName();
 
     public MediaPlayer mMediaPlayer;
-    private SpotifyService mSpotifyService;
     private Track mTrack;
     private String mTrackRowId;
     private int mCurrentPosition = 0;
-    private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
-    private IBinder mBinder =  new LocalBinder();
     private Timer mTimer;
+    private boolean mIsPlaying = true;
 
 
     // Handler that receives messages from the thread
@@ -49,15 +48,18 @@ public class PlaybackService extends Service {
             Bundle data = msg.getData();
 
             mTrackRowId = data.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-            initializeSpotifyApi();
-            try { mTrack = Utility.buildTrackFromContentProviderId(getApplicationContext(), mTrackRowId);}
-            catch (Exception e) { Log.e(LOG_TAG, Log.getStackTraceString(e));}
+            setTrack();
 
-            updateState(data.getString(Constants.KEY.INTENT_ACTION), mTrack.id);
+            int progress = data.getInt(Constants.KEY.PROGRESS, 0);
+            String action = data.getString(Constants.KEY.INTENT_ACTION);
+            boolean isLargeLayout = data.getBoolean(Constants.KEY.LARGE_LAYOUT_FLAG);
+            updateState(action, isLargeLayout, progress);
             // Stop the service using the startId, so that we don't stop
             // the service in the middle of handling another job
+
         }
     }
+
 
     @Override
     public void onCreate() {
@@ -70,25 +72,32 @@ public class PlaybackService extends Service {
         thread.start();
 
         // Get the HandlerThread's Looper and use it for our Handler
-        mServiceLooper = thread.getLooper();
+        Looper mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Bundle data = new Bundle();
-        data.putString(Constants.KEY.INTENT_ACTION, intent.getAction());
-        data.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,
-                intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID));
 
-        Notification notification = new Notification(R.mipmap.spotify_streamer_launcher, "Now Playing a song",
-                System.currentTimeMillis());
+        if (intent.getAction() != null) {
+            data.putString(Constants.KEY.INTENT_ACTION, intent.getAction());
+        }
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-        notification.setLatestEventInfo(this, "NOTIFICATION TITLE",
-                "NOTIFICATION MESSAGE", pendingIntent);
-        startForeground(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE, notification);
+        if (intent.hasExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)) {
+            data.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,
+                    intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID));
+        }
 
+        if (intent.hasExtra(Constants.KEY.LARGE_LAYOUT_FLAG)) {
+            data.putBoolean(Constants.KEY.LARGE_LAYOUT_FLAG,
+                    intent.getBooleanExtra(Constants.KEY.LARGE_LAYOUT_FLAG, false));
+        }
+
+        if (intent.hasExtra(Constants.KEY.PROGRESS)) {
+            data.putInt(Constants.KEY.PROGRESS,
+                    intent.getIntExtra(Constants.KEY.PROGRESS, 0));
+        }
 
         // For each start request, send a message to start a job and deliver the
         // start ID so we know which request we're stopping when we finish the job
@@ -97,8 +106,7 @@ public class PlaybackService extends Service {
         msg.setData(data);
         mServiceHandler.sendMessage(msg);
 
-        // If we get killed, after returning from here, restart
-        return START_REDELIVER_INTENT;
+        return START_STICKY;
     }
 
 
@@ -108,43 +116,35 @@ public class PlaybackService extends Service {
     }
 
 
-    public class LocalBinder extends Binder {
-        public PlaybackService getService() {
-            return PlaybackService.this;
-        }
-    }
-
-
     @Override
     public IBinder onBind(Intent intent) {
-        return mBinder;
+        return null;
     }
 
 
-    public void updateTrackProgress (int progress) {
-        if (mMediaPlayer != null) {
-            mMediaPlayer.seekTo(progress);
-        }
-    }
+    private void sendDataToReceivers(String ACTION) {
+        Intent intent = new Intent(Constants.FILTER.RECEIVER_INTENT_FILTER);
 
+        switch (ACTION) {
+            case Constants.ACTION.SET_POSITION:
+                intent.putExtra(Constants.KEY.INTENT_ACTION, Constants.ACTION.SET_POSITION);
+                intent.putExtra(Constants.KEY.TRACK_POSITION, mMediaPlayer.getCurrentPosition());
+                break;
 
-    public void sendDataToReceivers(boolean timer, boolean changeSong) {
-        Intent intent;
-        if (timer) {
-            intent = new Intent(Constants.FILTER.RECEIVER_INTENT_FILTER);
-            intent.putExtra(Constants.KEY.TRACK_POSITION, Integer.toString(mMediaPlayer.getCurrentPosition()));
+            case Constants.ACTION.UPDATE_VIEW:
+                intent.putExtra(Constants.KEY.INTENT_ACTION, Constants.ACTION.UPDATE_VIEW);
+                intent.putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, mTrackRowId);
+                if (mMediaPlayer != null) {
+                    intent.putExtra(Constants.KEY.DURATION, mMediaPlayer.getDuration());
+                }
+                break;
+        }
 
-        }
-        else {
-            intent = new Intent(Constants.FILTER.RECEIVER_INTENT_FILTER);
-            intent.putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,mTrackRowId);
-            intent.putExtra(Constants.KEY.CHANGE_TRACK, changeSong);
-        }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
 
-    public void startTimerTask() {
+    private void startTimerTask() {
         int INTERVAL_TIME = 250;
         int DELAY_TRIGGER = 1000;
         if (null == mTimer) mTimer = new Timer();
@@ -152,22 +152,152 @@ public class PlaybackService extends Service {
             @Override
             public void run() {
                 if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
-                    sendDataToReceivers(true, false);
+                    sendDataToReceivers(Constants.ACTION.SET_POSITION);
                 }
             }
         }, DELAY_TRIGGER, INTERVAL_TIME);}
 
 
-    private void initializeSpotifyApi() {
-        if (mSpotifyService == null) {
-            SpotifyApi api = new SpotifyApi();
-            mSpotifyService = api.getService();
+
+    private void updateState(String ACTION, boolean isLargeLayout, int progress) {
+        Intent notificationIntent;
+
+        switch (ACTION) {
+            case Constants.ACTION.START_FOREGROUND:
+                Log.i(LOG_TAG, "Received Start Foreground Intent ");
+
+                if (isLargeLayout) notificationIntent  = new Intent(this, MainActivity.class);
+                else notificationIntent = new Intent(this, PlaybackActivity.class);
+
+                notificationIntent.setAction(Constants.ACTION.CREATE);
+                notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
+                        notificationIntent, 0);
+
+
+                Intent previousIntent = new Intent(this, PlaybackService.class);
+                previousIntent.setAction(Constants.ACTION.SKIP_BACK);
+                PendingIntent pPreviousIntent = PendingIntent.getService(this, 0,
+                        previousIntent, 0);
+
+                Intent playIntent = new Intent(this, PlaybackService.class);
+                playIntent.setAction(Constants.ACTION.PAUSE);
+                PendingIntent pPlayIntent = PendingIntent.getService(this, 0,
+                        playIntent, 0);
+
+                Intent pauseIntent = new Intent(this, PlaybackService.class);
+                playIntent.setAction(Constants.ACTION.PAUSE);
+                PendingIntent pPauseIntent = PendingIntent.getService(this, 0,
+                        pauseIntent, 0);
+
+                Intent nextIntent = new Intent(this, PlaybackService.class);
+                nextIntent.setAction(Constants.ACTION.SKIP_FORWARD);
+                PendingIntent pNextIntent = PendingIntent.getService(this, 0,
+                        nextIntent, 0);
+
+                String trackImageUrl = mTrack.album.images.get(0).url;
+                Bitmap icon = Utility.getBitmapFromURL(trackImageUrl);
+
+                Notification notification = new NotificationCompat.Builder(this)
+                        .setContentTitle("Spotify Streamer Player")
+                        .setTicker("Spotify Streamer Playing: " + mTrack.name)
+                        .setContentText(mTrack.album.name)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setLargeIcon(
+                                Bitmap.createScaledBitmap(icon, 128, 128, false))
+                        .setContentIntent(pendingIntent)
+                        .setOngoing(true)
+                        .addAction(android.R.drawable.ic_media_previous, "Previous",
+                                pPreviousIntent)
+                        .addAction(android.R.drawable.ic_media_play, "Play",
+                                pPlayIntent)
+                        .addAction(android.R.drawable.ic_media_pause, "Pause",
+                                pPauseIntent)
+                        .addAction(android.R.drawable.ic_media_next, "Next",
+                                pNextIntent).build();
+
+                startForeground(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
+                        notification);
+                break;
+
+            case Constants.ACTION.CREATE:
+                Log.i(LOG_TAG, "Received Create Intent. Resetting the mMediaPlayer ");
+                if (mMediaPlayer == null) initMediaPlayer();
+                else resetMediaPlayer();
+
+                mMediaPlayer.seekTo(mCurrentPosition);
+                mMediaPlayer.start();
+                sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
+                startTimerTask();
+                break;
+
+            case Constants.ACTION.PLAY:
+                Log.i(LOG_TAG, "Received Play Intent ");
+                if (mMediaPlayer == null) initMediaPlayer();
+                else resetMediaPlayer();
+                mMediaPlayer.seekTo(mCurrentPosition);
+                mMediaPlayer.start();
+                mIsPlaying = true;
+                sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
+                break;
+
+            case Constants.ACTION.UPDATE_PROGRESS:
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.seekTo(progress);
+                }
+                break;
+
+            case Constants.ACTION.SKIP_BACK:
+                Log.i(LOG_TAG, "Received Skip Back Foreground Intent ");
+                if (mMediaPlayer != null) {
+                    resetMediaPlayer();
+                    initMediaPlayer();
+                    mMediaPlayer.start();
+                    sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
+                    startTimerTask();
+                }
+                break;
+
+            case Constants.ACTION.SKIP_FORWARD:
+                Log.i(LOG_TAG, "Received Skip Forward Intent ");
+                if (mMediaPlayer != null) {
+                    resetMediaPlayer();
+                    initMediaPlayer();
+                    mMediaPlayer.start();
+                    sendDataToReceivers(Constants.ACTION.UPDATE_VIEW);
+                    startTimerTask();
+                }
+                break;
+
+            case Constants.ACTION.PAUSE:
+                Log.i(LOG_TAG, "Received Pause Intent ");
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.pause();
+                    mCurrentPosition = mMediaPlayer.getCurrentPosition();
+                    mIsPlaying = false; //Should be false
+                }
+                break;
+
+            case Constants.ACTION.STOP:
+                Log.i(LOG_TAG, "Received Stop Intent ");
+                if (mMediaPlayer != null) mMediaPlayer.stop();
+                break;
+
+            case Constants.ACTION.STOP_FOREGROUND:
+                Log.i(LOG_TAG, "Received Stop Foreground Intent. Stopping Notification ");
+                stopForeground(true);
+                break;
         }
     }
 
 
-    private boolean trackChanged(String trackId) {
-        return !mTrack.id.equals(trackId);
+    private void setTrack() {
+        try {
+            mTrack = Utility.buildTrackFromContentProviderId(getApplicationContext(), mTrackRowId);
+            if (mTrack != null) Log.i(LOG_TAG, "Created Track. Id: " + mTrack.id);
+        }
+        catch (Exception e) { Log.e(LOG_TAG, Log.getStackTraceString(e));}
     }
 
 
@@ -179,6 +309,7 @@ public class PlaybackService extends Service {
 
 
     private void initMediaPlayer() {
+        Log.i(LOG_TAG, "Initializing mMediaPlayer.");
         mMediaPlayer = new MediaPlayer();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
@@ -186,68 +317,8 @@ public class PlaybackService extends Service {
             mMediaPlayer.setDataSource(mTrack.preview_url);
             mMediaPlayer.prepare();
         }
-        catch (IOException ioe) { LogError("An IOException has occured", ioe); }
-        catch (IllegalStateException ise) { LogError("An IllegalStateException has occurred", ise); }
-    }
-
-
-    public void updateState(String ACTION, String trackId) {
-        switch (ACTION) {
-            case Constants.ACTION.CREATE_ACTION:
-                if (mMediaPlayer == null) initMediaPlayer();
-                else if (trackChanged(trackId)) resetMediaPlayer();
-                mMediaPlayer.seekTo(mCurrentPosition);
-                mMediaPlayer.start();
-                sendDataToReceivers(false, false);
-                startTimerTask();
-                break;
-
-            case Constants.ACTION.PLAY_ACTION:
-                if (mMediaPlayer == null) initMediaPlayer();
-                else if (trackChanged(trackId)) resetMediaPlayer();
-                mMediaPlayer.seekTo(mCurrentPosition);
-                mMediaPlayer.start();
-                break;
-
-            case Constants.ACTION.PREV_ACTION:
-                if (mMediaPlayer != null) {
-                    resetMediaPlayer();
-                    initMediaPlayer();
-                    mMediaPlayer.start();
-                    sendDataToReceivers(false, true);
-                    startTimerTask();
-                }
-                break;
-
-            case Constants.ACTION.NEXT_ACTION:
-                if (mMediaPlayer != null) {
-                    resetMediaPlayer();
-                    initMediaPlayer();
-                    mMediaPlayer.start();
-                    sendDataToReceivers(false, true);
-                    startTimerTask();
-                }
-                break;
-
-            case Constants.ACTION.PAUSE_ACTION:
-                if (mMediaPlayer != null) {
-                    mMediaPlayer.pause();
-                    mCurrentPosition = mMediaPlayer.getCurrentPosition();
-                }
-                break;
-
-            case Constants.ACTION.STOP_ACTION:
-                if (mMediaPlayer != null) {
-                    mMediaPlayer.stop();
-                }
-                break;
-        }
-    }
-
-
-    private void LogError(String Message, Exception ex) {
-        Log.v(LOG_TAG, Message + ": " + ex.getMessage());
-        Log.e(LOG_TAG, Log.getStackTraceString(ex));
+        catch (IOException ioe) { Utility.LogError("An IOException has occured", ioe); }
+        catch (IllegalStateException ise) { Utility.LogError("An IllegalStateException has occurred", ise); }
     }
 }
 

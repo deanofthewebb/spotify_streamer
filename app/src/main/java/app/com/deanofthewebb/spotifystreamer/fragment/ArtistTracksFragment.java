@@ -117,6 +117,7 @@ public class ArtistTracksFragment extends Fragment
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 ((ArtistTracksFragment.Callback) getActivity())
                         .onTrackSelected(cursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ID));

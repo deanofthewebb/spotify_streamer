@@ -15,6 +15,7 @@ import app.com.deanofthewebb.spotifystreamer.fragment.ArtistSearchFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
 import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
+import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 
 
 public class MainActivity extends ActionBarActivity implements ArtistSearchFragment.Callback, ArtistTracksFragment.Callback {
@@ -85,31 +86,9 @@ public class MainActivity extends ActionBarActivity implements ArtistSearchFragm
         }
     }
 
-    public void showDialog(String trackRowId) {
-        FragmentManager fragmentManager = getFragmentManager();
-        PlaybackFragment fragment = new PlaybackFragment();
-
-        Bundle args = new Bundle();
-        args.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, trackRowId);
-        fragment.setArguments(args);
-
-        if (mIsLargeLayout) {
-            // The device is using a large layout, so show the fragment as a dialog
-            fragment.show(fragmentManager, "dialog");
-        } else {
-            // The device is smaller, so show the fragment fullscreen
-            FragmentTransaction transaction = fragmentManager.beginTransaction();
-            // For a little polish, specify a transition animation
-            transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
-            // To make it fullscreen, use the 'content' root view as the container
-            // for the fragment, which is always the root view for the activity
-            transaction.add(R.id.playback_activity_container, fragment)
-                    .addToBackStack(null).commit();
-        }
-    }
 
     @Override
-    public void onTrackSelected(String TrackRowId) {
-        showDialog(TrackRowId);
+    public void onTrackSelected(String trackRowId) {
+        Utility.showPlaybackDialog(MainActivity.this, trackRowId, mIsLargeLayout);
     }
 }

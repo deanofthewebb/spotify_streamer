@@ -1,7 +1,5 @@
 package app.com.deanofthewebb.spotifystreamer.activity;
 
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.support.v7.app.ActionBar;
 import android.os.Bundle;
@@ -9,10 +7,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.fragment.ArtistTracksFragment;
 import app.com.deanofthewebb.spotifystreamer.R;
-import app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment;
+import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 
 
 public class DetailActivity extends AppCompatActivity
@@ -41,32 +38,6 @@ public class DetailActivity extends AppCompatActivity
                             .commit();
         }
     }
-
-    public void showDialog(String trackRowId) {
-        FragmentManager fragmentManager = getFragmentManager();
-        PlaybackFragment fragment = new PlaybackFragment();
-
-
-        Bundle args = new Bundle();
-        args.putString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, trackRowId);
-        fragment.setArguments(args);
-
-        ArtistTracksFragment trackFragment = (ArtistTracksFragment) fragmentManager.findFragmentById(R.id.track_detail_container);
-
-        if (mIsLargeLayout) {
-            // The device is using a large layout, so show the fragment as a dialog
-            fragment.show(fragmentManager, "dialog");
-        } else {
-            //remove existing fragment
-            FragmentTransaction transaction = fragmentManager.beginTransaction();
-            transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
-            transaction.remove(trackFragment).addToBackStack(null)
-                        .addToBackStack(null);
-            transaction.add(R.id.track_detail_container, fragment)
-                    .addToBackStack(null).commit();
-        }
-    }
-
 
 
     public void setActionBarSubTitle (String subTitle) {
@@ -98,6 +69,6 @@ public class DetailActivity extends AppCompatActivity
 
     @Override
     public void onTrackSelected(String TrackRowId) {
-        showDialog(TrackRowId);
+        Utility.showPlaybackDialog(DetailActivity.this, TrackRowId, mIsLargeLayout);
     }
 }

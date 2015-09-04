@@ -2,14 +2,11 @@ package app.com.deanofthewebb.spotifystreamer.fragment;
 
 import android.app.DialogFragment;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -36,54 +33,37 @@ import kaaes.spotify.webapi.android.models.Track;
 
 public class PlaybackFragment extends DialogFragment {
     private final String LOG_TAG = PlaybackFragment.class.getSimpleName();
-    PlaybackService mPlaybackService;
-    boolean mServiceBounded = false;
 
     private Constants.PlaybackFragmentViewHolder mViewHolder;
     private Track mTrack;
     private String mTrackRowId;
+    private boolean mIsPlaying = true;
 
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.hasExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)) {
-                String trackRowId = intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-                try { mTrack = Utility.buildTrackFromContentProviderId(context, trackRowId);}
-                catch (Exception e) { e.printStackTrace(); }
+            switch (intent.getStringExtra(Constants.KEY.INTENT_ACTION)) {
+                case Constants.ACTION.SET_POSITION:
+                    if (intent.hasExtra(Constants.KEY.TRACK_POSITION)){
+                        int currentPosition = intent.getIntExtra(Constants.KEY.TRACK_POSITION, 0);
+                        mViewHolder.seekBar.setProgress(currentPosition);
+                        mViewHolder.startTime.setText(formatDuration(currentPosition));
+                    }
+                    break;
 
-                Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
-                serviceIntent.setAction(Constants.ACTION.CREATE_ACTION);
-                getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-
-                if (intent.hasExtra(Constants.KEY.CHANGE_TRACK) && intent.getBooleanExtra(Constants.KEY.CHANGE_TRACK, true)) {
-                    setChildViews();
-                }
-            }
-            else if (intent.hasExtra(Constants.KEY.TRACK_POSITION)){
-
-                int currentPosition = Integer.parseInt(intent.getStringExtra(Constants.KEY.CHANGE_TRACK));
-                mViewHolder.seekBar.setProgress(currentPosition);
-                mViewHolder.startTime.setText(formatDuration(currentPosition));
+                case Constants.ACTION.UPDATE_VIEW:
+                    if (intent.hasExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID)) {
+                        mTrackRowId = intent.getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+                        int duration = intent.getIntExtra(Constants.KEY.DURATION, 0);
+                        try {mTrack = Utility.buildTrackFromContentProviderId(context, mTrackRowId);}
+                        catch (Exception e) { e.printStackTrace(); }
+                        updateView(duration);
+                    }
+                    break;
             }
         }
     };
 
-    private ServiceConnection mServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className,
-                                       IBinder service) {
-            PlaybackService.LocalBinder binder = (PlaybackService.LocalBinder) service;
-            mPlaybackService = binder.getService();
-            mServiceBounded = true;
-            setChildViews();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            mServiceBounded = false;
-        }
-    };
 
 
     public PlaybackFragment() {
@@ -92,30 +72,19 @@ public class PlaybackFragment extends DialogFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Intent serviceIntent;
+        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
+                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
+
         Bundle arguments = getArguments();
-
-
-
-
-
-
-
-
-
 
         if (arguments != null) {
             mTrackRowId = arguments.getString(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-            serviceIntent = getServiceIntent(Constants.ACTION.PLAY_ACTION);
+            boolean largeLayout =  arguments.getBoolean(Constants.KEY.LARGE_LAYOUT_FLAG);
 
-            if (mPlaybackService == null ) {
-                try {
-                    mTrack =  Utility.buildTrackFromContentProviderId(getActivity(), mTrackRowId);
-                } catch (Exception e) { e.printStackTrace(); }
-                getActivity().startService(serviceIntent);
-                getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-            }
-            else getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+            getActivity().startService(getServiceIntent(Constants.ACTION.START_FOREGROUND)
+                    .putExtra(Constants.KEY.LARGE_LAYOUT_FLAG, largeLayout));
+
+            getActivity().startService(getServiceIntent(Constants.ACTION.CREATE));
         }
         else if (savedInstanceState != null) {
             try {
@@ -135,16 +104,18 @@ public class PlaybackFragment extends DialogFragment {
 
             } catch (Exception e) { e.printStackTrace(); }
 
-            serviceIntent = getServiceIntent(Constants.ACTION.CREATE_ACTION);
-            getActivity().bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        } else {
-                mTrackRowId = getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
-                serviceIntent = getServiceIntent(Constants.ACTION.CREATE_ACTION);
-                getActivity().startService(serviceIntent);
-        }
+            boolean largeLayout = savedInstanceState.
+            getBoolean(Constants.KEY.LARGE_LAYOUT_FLAG);
 
-        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
+            getActivity().startService(getServiceIntent(Constants.ACTION.START_FOREGROUND)
+                    .putExtra(Constants.KEY.LARGE_LAYOUT_FLAG, largeLayout));
+
+            getActivity().startService(getServiceIntent(Constants.ACTION.CREATE));
+        }
+        else {
+                mTrackRowId = getActivity().getIntent().getStringExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID);
+                getActivity().startService(getServiceIntent(Constants.ACTION.CREATE));
+        }
 
         super.onCreate(savedInstanceState);
     }
@@ -156,13 +127,7 @@ public class PlaybackFragment extends DialogFragment {
 
         View rootView = inflater.inflate(R.layout.fragment_playback, container, false);
         mViewHolder = new Constants.PlaybackFragmentViewHolder(rootView);
-
         return rootView;
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -187,17 +152,7 @@ public class PlaybackFragment extends DialogFragment {
     }
 
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        // Unbind from the service
-        if (mServiceBounded) {
-            getActivity().unbindService(mServiceConnection);
-            mServiceBounded = false;
-        }
-    }
-
-    public void setChildViews() {
+    public void updateView(int duration) {
         if (mTrack != null) {
 
             mViewHolder.trackAlbumName.setText(mTrack.album.name);
@@ -206,7 +161,7 @@ public class PlaybackFragment extends DialogFragment {
 
             ArrayList<String> artists = new ArrayList<>();
             for (ArtistSimple artist : mTrack.artists) { artists.add(artist.name); }
-            String artistNames = TextUtils.join(",", artists);
+            String artistNames = TextUtils.join(", ", artists);
 
             mViewHolder.artistName.setText(artistNames);
             mViewHolder.startTime.setText(formatDuration(0));
@@ -214,12 +169,14 @@ public class PlaybackFragment extends DialogFragment {
             mViewHolder.playPauseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (mPlaybackService.mMediaPlayer.isPlaying()) {
+                    if (mIsPlaying) {
+                        getActivity().startService(getServiceIntent(Constants.ACTION.PAUSE));
                         mViewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_play);
-                        mPlaybackService.updateState(Constants.ACTION.PAUSE_ACTION, null);
+                        mIsPlaying = false;
                     } else {
+                        getActivity().startService(getServiceIntent(Constants.ACTION.PLAY));
                         mViewHolder.playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
-                        mPlaybackService.updateState(Constants.ACTION.PLAY_ACTION, mTrack.id);
+                        mIsPlaying = true;
                     }
                 }
             });
@@ -228,7 +185,12 @@ public class PlaybackFragment extends DialogFragment {
             mViewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (fromUser) mPlaybackService.updateTrackProgress(progress);
+                    if (fromUser) {
+                        mViewHolder.seekBar.setProgress(progress);
+                        Intent serviceIntent = getServiceIntent(Constants.ACTION.UPDATE_PROGRESS)
+                                .putExtra(Constants.KEY.PROGRESS, progress);
+                        getActivity().startService(serviceIntent);
+                    }
                 }
 
                 @Override
@@ -243,17 +205,14 @@ public class PlaybackFragment extends DialogFragment {
             mViewHolder.previousTrackButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    String previousTrackRowId = getPreviousTrackRowId();
+                    Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
+                    serviceIntent
+                            .setAction(Constants.ACTION.SKIP_BACK)
+                            .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,
+                                    previousTrackRowId);
 
-                    if (mPlaybackService.mMediaPlayer.isPlaying()) {
-
-                        String previousTrackRowId = getPreviousTrackRowId();
-                        Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
-                        serviceIntent
-                                .setAction(Constants.ACTION.PREV_ACTION)
-                                .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, previousTrackRowId);
-
-                        getActivity().startService(serviceIntent);
-                    }
+                    getActivity().startService(serviceIntent);
                 }
             });
 
@@ -263,18 +222,17 @@ public class PlaybackFragment extends DialogFragment {
                     String nextTrackRowId = getNextTrackRowId();
                     Intent serviceIntent = new Intent(getActivity(), PlaybackService.class);
                     serviceIntent
-                            .setAction(Constants.ACTION.NEXT_ACTION)
-                            .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID, nextTrackRowId);
+                            .setAction(Constants.ACTION.SKIP_FORWARD)
+                            .putExtra(SpotifyStreamerContract.TrackEntry.FULLY_QUALIFIED_ID,
+                                    nextTrackRowId);
 
                     getActivity().startService(serviceIntent);
                 }
             });
 
-            int duration = mPlaybackService.mMediaPlayer.getDuration();
             String formattedDuration = formatDuration(duration);
 
             mViewHolder.endTime.setText(formattedDuration);
-            mViewHolder.seekBar.setProgress(mPlaybackService.mMediaPlayer.getCurrentPosition());
             mViewHolder.seekBar.setVisibility(ProgressBar.VISIBLE);
             mViewHolder.seekBar.setMax(duration);
         } else { Log.e(LOG_TAG, "No Track Found!"); }
