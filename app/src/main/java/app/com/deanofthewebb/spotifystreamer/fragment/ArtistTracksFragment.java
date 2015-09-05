@@ -117,10 +117,11 @@ public class ArtistTracksFragment extends Fragment
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-
-                Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
-                ((ArtistTracksFragment.Callback) getActivity())
-                        .onTrackSelected(cursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ID));
+                if (Utility.isNetworkAvailable(getActivity())) {
+                    Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+                    ((ArtistTracksFragment.Callback) getActivity())
+                            .onTrackSelected(cursor.getString(Constants.CONTENT_PROVIDER.COL_TRACK_ID));
+                } else { Utility.ShowNoNetworkFoundToast(getActivity()); }
             }
         });
 
@@ -129,9 +130,12 @@ public class ArtistTracksFragment extends Fragment
 
 
     private void UpdateTopTracks() {
-        FetchTopTracksTask topTracksTask = new FetchTopTracksTask();
-        topTracksTask.execute(mArtist.id);
+
+        if (Utility.isNetworkAvailable(getActivity())) {
+            FetchTopTracksTask topTracksTask = new FetchTopTracksTask();
+            topTracksTask.execute(mArtist.id);
             getLoaderManager().initLoader(Constants.LOADER_ID.TRACK_LOADER_ID, null, this);
+        } else { Utility.ShowNoNetworkFoundToast(getActivity()); }
     }
 
     @Override

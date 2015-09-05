@@ -130,8 +130,6 @@ public class SpotifyStreamerProvider extends ContentProvider {
         selection = selection.replace("?", artistQuery);
 
         String sortOrder = sBestMatchSortOrder.replace("?", artistQuery);
-        Log.v(LOG_TAG, "SORT ORDER BEING USED: " + sortOrder);
-
         return sArtistQueryBuilder.query(mOpenHelper.getReadableDatabase(),
                 projection,
                 selection,

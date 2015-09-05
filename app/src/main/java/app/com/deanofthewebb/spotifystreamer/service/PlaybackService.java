@@ -58,12 +58,7 @@ public class PlaybackService extends Service {
             String action = data.getString(Constants.KEY.INTENT_ACTION);
             boolean isLargeLayout = data.getBoolean(Constants.KEY.LARGE_LAYOUT_FLAG);
 
-            Log.i(LOG_TAG, "Sending Progress to updateState. ACTION: " + action + " Progress: " + progress
-                    + "currentPosition:" + mCurrentPosition);
-
             if (data.getInt(Constants.KEY.TRACK_POSITION, -1) != -1) {
-                Log.i(LOG_TAG, "Setting Track Progress: " + progress
-                        + "currentPosition" + mCurrentPosition);
                 mCurrentPosition = data.getInt(Constants.KEY.TRACK_POSITION, -1);
                 progress = mCurrentPosition;
             }
@@ -241,7 +236,6 @@ public class PlaybackService extends Service {
 
             case Constants.ACTION.UPDATE_PROGRESS:
                 if (mMediaPlayer != null) {
-                    Log.i(LOG_TAG, "Updating Progress. Progress: " + progress + " CurrentPosition: " + mCurrentPosition);
                     mCurrentPosition = progress;
                     mMediaPlayer.seekTo(progress);
                 }
@@ -378,7 +372,7 @@ public class PlaybackService extends Service {
     private void setTrack() {
         try {
             mTrack = Utility.buildTrackFromContentProviderId(getApplicationContext(), mTrackRowId);
-            if (mTrack != null) Log.i(LOG_TAG, "Created Track. Id: " + mTrack.id);
+            if (mTrack != null) Log.d(LOG_TAG, "Created Track. Id: " + mTrack.id);
         }
         catch (Exception e) { Log.e(LOG_TAG, Log.getStackTraceString(e));}
     }

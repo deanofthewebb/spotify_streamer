@@ -29,6 +29,7 @@ import app.com.deanofthewebb.spotifystreamer.adapter.ArtistCursorAdapter;
 import app.com.deanofthewebb.spotifystreamer.data.SpotifyStreamerContract;
 import app.com.deanofthewebb.spotifystreamer.R;
 import app.com.deanofthewebb.spotifystreamer.helpers.Constants;
+import app.com.deanofthewebb.spotifystreamer.helpers.Utility;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
@@ -134,12 +135,12 @@ public class ArtistSearchFragment extends Fragment
     }
 
     private void UpdateArtistResults(String artistQuery) {
-        if (isNetworkAvailable()) {
+        if (Utility.isNetworkAvailable(getActivity())) {
             FetchArtistsTask artistTask = new FetchArtistsTask();
             artistTask.execute(artistQuery);
         }
         else {
-            ShowNoNetworkFoundToast();
+            Utility.ShowNoNetworkFoundToast(getActivity());
         }
 
         // Initialize Loader here
@@ -150,19 +151,6 @@ public class ArtistSearchFragment extends Fragment
             getLoaderManager().destroyLoader(Constants.LOADER_ID.ARTIST_LOADER);
             getLoaderManager().initLoader(Constants.LOADER_ID.ARTIST_LOADER, null, this);
         }
-    }
-
-    private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager
-                = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
-    }
-
-    private void ShowNoNetworkFoundToast() {
-        CharSequence text = getString(R.string.no_network_found);
-        int duration = Toast.LENGTH_LONG;
-        Toast.makeText(getActivity(), text, duration).show();
     }
 
     @Override

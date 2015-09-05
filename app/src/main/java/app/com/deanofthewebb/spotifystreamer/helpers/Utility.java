@@ -7,10 +7,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -109,6 +112,20 @@ public class Utility {
                     .addToBackStack(null).commit();
         }
     }
+
+    public static boolean isNetworkAvailable(Context context) {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager)  context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    public static void ShowNoNetworkFoundToast(Context context) {
+        CharSequence text = context.getString(R.string.no_network_found);
+        int duration = Toast.LENGTH_LONG;
+        Toast.makeText(context, text, duration).show();
+    }
+
 
 
     public static Track buildTrackFromContentProviderId(Context context, String trackRowId) throws Exception {

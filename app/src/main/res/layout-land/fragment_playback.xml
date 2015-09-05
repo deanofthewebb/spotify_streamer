@@ -1,11 +1,26 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:id="@+id/playback_container"
-    android:layout_height="match_parent"
-    tools:context="app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/playback_container"
+        android:orientation="horizontal"
+        android:background="@color/dark_grey"
+        android:minHeight="?android:attr/listPreferredItemHeight"
+        tools:context="app.com.deanofthewebb.spotifystreamer.fragment.PlaybackFragment">
+
+    <ImageView
+        android:id="@+id/list_item_album_art"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:padding="16dp"
+        android:layout_height="wrap_content"
+        android:maxHeight="275dp"
+        android:maxWidth="275dp"
+        android:layout_gravity="center" />
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
+        android:layout_weight="1"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="16dp"
@@ -16,31 +31,32 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            />
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="@color/white"/>
+
+
         <TextView
             android:id="@+id/list_item_track_album"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            />
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="@color/white"
+            android:textAppearance="?android:textAppearanceLarge"/>
 
-        <ImageView
-            android:id="@+id/list_item_album_art"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxHeight="150dp"
-            android:maxWidth="150dp"
-            android:layout_gravity="center" />
+
         <TextView
             android:id="@+id/list_item_track_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            />
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="@color/white" />
 
 
         <SeekBar
             android:layout_width="match_parent"
+            android:padding="16dp"
             android:layout_height="wrap_content"
             android:id="@+id/playback_seek_bar"
             android:layout_gravity="center" />
@@ -55,7 +71,9 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:gravity="left" />
+                android:gravity="start"
+                android:fontFamily="sans-serif-condensed"
+                android:textColor="@color/white" />
 
 
             <TextView
@@ -63,7 +81,9 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:gravity="right" />
+                android:gravity="end"
+                android:fontFamily="sans-serif-condensed"
+                android:textColor="@color/white" />
 
         </LinearLayout>
 
@@ -71,7 +91,9 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:padding="16dp">
 
             <FrameLayout
                 android:layout_width="0dp"
@@ -84,6 +106,7 @@
                     android:layout_height="wrap_content"
                     android:id="@+id/previous_playback_button"
                     android:layout_gravity="center"
+                    android:background="@color/dark_grey"
                     android:src="@android:drawable/ic_media_previous"/>
             </FrameLayout>
 
@@ -99,6 +122,7 @@
                     android:layout_height="wrap_content"
                     android:id="@+id/play_pause_playback_button"
                     android:layout_gravity="center"
+                    android:background="@color/dark_grey"
                     android:src="@android:drawable/ic_media_play"/>
             </FrameLayout>
 
@@ -114,8 +138,10 @@
                     android:layout_height="wrap_content"
                     android:id="@+id/next_playback_button"
                     android:layout_gravity="center"
+                    android:background="@color/dark_grey"
                     android:src="@android:drawable/ic_media_next"/>
             </FrameLayout>
         </LinearLayout>
     </LinearLayout>
-</FrameLayout>
+
+</LinearLayout>
